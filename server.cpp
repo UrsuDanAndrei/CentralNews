@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+
 #include "utils.h"
 
 void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
@@ -34,7 +35,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
     // se primeste primul mesaj cu numele de autentificare (client_id)
 	ret_code = recv(new_sockfd, buffer, sizeof(buffer), 0);
 	DIE(ret_code < 0, "recv");
-    int msg_len = ret_code;
+    //int msg_len = ret_code;
 
 	printf("New client %s connected from %s:%d.\n",
 		buffer ,inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
@@ -102,17 +103,109 @@ void process_received_info(int sockfd) {
 
 	char buffer[BUFLEN + 500];
 	memset(buffer, 0, sizeof(buffer));
+
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
 
+
 	// !!! MSG_WAITALL poate trebuie altceva
-	int recv_size = recvfrom(sockfd, buffer, sizeof(buffer), MSG_WAITALL,
+	recvfrom(sockfd, buffer, sizeof(buffer), MSG_WAITALL,
 								(struct sockaddr*) &client_addr, &client_len);
 	
-	// !!! poate are 50 bytes fix si n-are termnator de sir 
+	// the buffer will be parsed into msg
+	char msg[BUFLEN];
+	memset(msg, 0, sizeof(msg));
+	
+	// !!! poate are 50 bytes fix si n-are termnator de sir
+	// !!! inet_ntoa are cod de eroare
+
+	// IP
+	char *ip_addr = inet_ntoa(client_addr.sin_addr);
+	memcpy(msg, ip_addr, strlen(ip_addr));
+
+	// IP:
+	int pct2_offset = strlen(ip_addr);
+	msg[pct2_offset] = ':';
+
+	// IP:PORT
+	int port_offset = pct2_offset + 1;
+	int nr_len = sprintf(buffer + port_offset, "%d", ntohs(client_addr.sin_port));
+
+	// IP:PORT - 
+	int s_line_s_offset = port_offset + nr_len;
+	msg[s_line_s_offset] = ' ';
+	msg[s_line_s_offset + 1] = '-';
+	msg[s_line_s_offset + 2] = ' ';
+
+	/* strlen returneaza dimensiunea pana la primul '\0' din buffer, adica exact
+	lungimea topicului */
+	// IP:PORT - topic
+	int topic_offset = s_line_s_offset + 3;
+	memcpy(msg + topic_offset, buffer, strlen(buffer));
+	
+	// IP:PORT - topic - 
+	int s_line_s_offset2 = topic_offset + strlen(buffer);
+	msg[s_line_s_offset2] = ' ';
+	msg[s_line_s_offset2 + 1] = '-';
+	msg[s_line_s_offset2 + 2] = ' ';
+
+	// IP:PORT - topic - tip_date - valoare mesaj
+	int type_offset =  s_line_s_offset2 + 3;
+	uint8_t type;
+	memcpy(&type, buffer + TYPE_OFFSET, 1);
+
+	// !!! poate denumeste toate tipurele intr-un enum or something
+	switch (type) {
+		case INT: {
+			msg[type_offset] = 'I';
+			msg[type_offset + 1] = 'N';
+			msg[type_offset + 2] = 'T';
+
+			int s_line_s_offset3 = type_offset + 3;
+			msg[s_line_s_offset3] = ' ';
+			msg[s_line_s_offset3 + 1] = '-';
+			msg[s_line_s_offset3 + 2] = ' ';
+
+			uint8_t sign;
+			memcpy(&sign, buffer + SIGN_OFFSET, 1);
+
+			uint32_t no;
+			memcpy(&no, buffer + INT_OFFSET, sizeof(uint32_t));
+			no = ntohl(no);
+
+			int no_offset = s_line_s_offset + 3;
+			if (sign == 1) {
+				msg[no_offset] = '-';
+				++no_offset;
+			}
+
+			memcpy(msg + no_offset, &no, sizeof(uint32_t));
+
+			break;
+		}
+		
+		case SHORT_REAL: {
+			msg[type_offset] = 'S';
+			msg[type_offset + 1] = 'H';
+			msg[type_offset + 2] = 'O';
+			msg[type_offset + 3] = 'R';
+			msg[type_offset + 4] = 'T';
+			msg[type_offset + 5] = '_';
+			msg[type_offset + 6] = 'R';
+			msg[type_offset + 7] = 'E';
+			msg[type_offset + 8] = 'A';
+			msg[type_offset + 9] = 'L';
+
+			break;
+		}
+
+	default:
+		break;
+	}
+
 
 	printf("UDP Clinet spune: %s\n", buffer);
-	int i = 0;
+	//int i = 0;
 	// while (buffer[i] != '\0')
 	// {
 	// 	i++;
@@ -127,16 +220,12 @@ void process_received_info(int sockfd) {
 	// 	printf("Numar: %d\n", j);
 	// }
 
-	unsigned int val;
-	memcpy(&val, buffer + 50, 1);
 
-	unsigned int semn;
-	memcpy(&semn, buffer + 51, 1);
 
-	unsigned int actual_nr;
-	memcpy(&actual_nr, buffer + 52, 4);
+	// unsigned int actual_nr;
+	// memcpy(&actual_nr, buffer + 52, 4);
 
-	printf("UDP Client mai spune si: type: %d semn: %d numar: %d\n", val, semn, ntohl(actual_nr));
+	// printf("UDP Client mai spune si: type: %d semn: %d numar: %d\n", val, semn, ntohl(actual_nr));
 
 }
 

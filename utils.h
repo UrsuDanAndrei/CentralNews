@@ -26,4 +26,12 @@
 #define MAX_CLIENTS 10
 #define COMMAND_LEN 5
 
+#define INT 0
+#define SHORT_REAL 1
+#define FLOAT 2
+#define STRING 3
+#define TYPE_OFFSET 50
+#define SIGN_OFFSET 51
+#define INT_OFFSET 52
+
 #endif // __HELPERS_H__
