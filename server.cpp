@@ -21,9 +21,9 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	printf("in add_tcp_client\n");
 	// a venit o cerere de conexiune pe socketul inactiv (cel cu listen),
 	// pe care serverul o accepta
-	struct sockaddr_in cli_addr;
-	socklen_t client_len = sizeof(cli_addr);
-	int new_sockfd = accept(sockfd_tcp_listen, (struct sockaddr *) &cli_addr, &client_len);
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	int new_sockfd = accept(sockfd_tcp_listen, (struct sockaddr *) &client_addr, &client_len);
 	DIE(new_sockfd < 0, "accept");
 
 	// se adauga noul socket intors de accept() la multimea descriptorilor de citire
@@ -37,7 +37,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
     int msg_len = ret_code;
 
 	printf("New client %s connected from %s:%d.\n",
-		buffer ,inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+		buffer ,inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 }
 
 void process_tcp_client_request(int sockfd, fd_set& read_fds,
@@ -97,6 +97,49 @@ int command_from_stdin(std::unordered_set<int> &all_sockets) {
 	}
 }
 
+void process_received_info(int sockfd) {
+	printf("din process_received_info\n");
+
+	char buffer[BUFLEN + 500];
+	memset(buffer, 0, sizeof(buffer));
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+
+	// !!! MSG_WAITALL poate trebuie altceva
+	int recv_size = recvfrom(sockfd, buffer, sizeof(buffer), MSG_WAITALL,
+								(struct sockaddr*) &client_addr, &client_len);
+	
+	// !!! poate are 50 bytes fix si n-are termnator de sir 
+
+	printf("UDP Clinet spune: %s\n", buffer);
+	int i = 0;
+	// while (buffer[i] != '\0')
+	// {
+	// 	i++;
+	// }
+
+	// int j = i + 1;
+	// while (buffer[j] == 0 && j < BUFLEN + 500) {
+	// 	j++;
+	// }
+	
+	// if (j != BUFLEN + 500) {
+	// 	printf("Numar: %d\n", j);
+	// }
+
+	unsigned int val;
+	memcpy(&val, buffer + 50, 1);
+
+	unsigned int semn;
+	memcpy(&semn, buffer + 51, 1);
+
+	unsigned int actual_nr;
+	memcpy(&actual_nr, buffer + 52, 4);
+
+	printf("UDP Client mai spune si: type: %d semn: %d numar: %d\n", val, semn, ntohl(actual_nr));
+
+}
+
 void usage(char *file)
 {
 	fprintf(stderr, "Usage: %s server_port\n", file);
@@ -112,7 +155,7 @@ int main(int argc, char *argv[])
 	int ret_code;
 
 	struct sockaddr_in serv_addr;
-    memset((char *) &serv_addr, 0, sizeof(serv_addr));
+    memset(&serv_addr, 0, sizeof(serv_addr));
 
 	int port_no = atoi(argv[1]);
 	DIE(port_no == 0, "atoi");
@@ -184,7 +227,7 @@ int main(int argc, char *argv[])
 					}
 				} else if (fd == sockfd_udp) {
                     // adaug mesajele primite
-					// TODO add_udp_client()
+					process_received_info(fd);
                 } else if (fd == sockfd_tcp_listen) {
 					add_tcp_client(fdmax, sockfd_tcp_listen, read_fds, to_add);
 				} else {
