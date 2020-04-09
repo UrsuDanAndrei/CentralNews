@@ -4,7 +4,7 @@ PORT_SERVER = 10000
 # Adresa IP a serverului
 IP_SERVER = 127.0.0.1
 
-all: server client 
+all: server subscriber 
 
 # Compileaza server.c
 server: server.cpp

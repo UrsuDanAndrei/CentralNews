@@ -99,6 +99,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	shutdown(sockfd, 2);
 	close(sockfd);
 
 	return 0;
