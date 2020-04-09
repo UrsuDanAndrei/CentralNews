@@ -82,6 +82,11 @@ int main(int argc, char *argv[])
 			n = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
 			DIE(n < 0, "recv");
 
+			if (n == 0) {
+				printf("Serverul a inchis conexiunea\n");
+				break;
+			}
+
 			printf("Am primit de la server: %s\n", buffer);
 		} else if (FD_ISSET(0, &tmp_read_fds)){
 		//	printf("ieeeeeee\n");

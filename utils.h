@@ -22,7 +22,8 @@
 	} while(0)
 
 /* Dimensiunea maxima a calupului de date */
-#define BUFLEN 1500
+#define BUFLEN 1505
 #define MAX_CLIENTS 10
+#define COMMAND_LEN 5
 
 #endif // __HELPERS_H__
