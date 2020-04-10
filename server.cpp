@@ -46,7 +46,7 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 	int ret_code;
     char buffer[BUFLEN];
 	memset(buffer, 0, sizeof(buffer));
-	
+
     printf("in process_tcp_client_request\n");
 	// s-au primit date pe unul din socketii de client,
 	// asa ca serverul trebuie sa le receptioneze
@@ -129,10 +129,10 @@ void process_received_info(int sockfd) {
 
 	// IP:PORT
 	int port_offset = pct2_offset + 1;
-	int nr_len = sprintf(buffer + port_offset, "%d", ntohs(client_addr.sin_port));
+	int port_no_len = sprintf(msg + port_offset, "%d", ntohs(client_addr.sin_port));
 
 	// IP:PORT - 
-	int s_line_s_offset = port_offset + nr_len;
+	int s_line_s_offset = port_offset + port_no_len;
 	msg[s_line_s_offset] = ' ';
 	msg[s_line_s_offset + 1] = '-';
 	msg[s_line_s_offset + 2] = ' ';
@@ -173,13 +173,17 @@ void process_received_info(int sockfd) {
 			memcpy(&no, buffer + INT_OFFSET, sizeof(uint32_t));
 			no = ntohl(no);
 
-			int no_offset = s_line_s_offset + 3;
+			int no_offset = s_line_s_offset3 + 3;
 			if (sign == 1) {
 				msg[no_offset] = '-';
 				++no_offset;
 			}
 
 			memcpy(msg + no_offset, &no, sizeof(uint32_t));
+			int no_len = sprintf(msg + no_offset, "%d", no);
+
+			int final_len = no_offset + no_len;
+			msg[final_len] = '\0';
 
 			break;
 		}
@@ -204,7 +208,7 @@ void process_received_info(int sockfd) {
 	}
 
 
-	printf("UDP Clinet spune: %s\n", buffer);
+	printf("UDP Clinet spune: %s\n", msg);
 	//int i = 0;
 	// while (buffer[i] != '\0')
 	// {
