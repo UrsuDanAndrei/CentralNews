@@ -22,7 +22,7 @@
 	} while(0)
 
 /* Dimensiunea maxima a calupului de date */
-#define BUFLEN 1600
+#define BUFF_SIZE 1600
 #define MAX_CLIENTS 10
 
 #define COMMAND_LEN 5
@@ -38,7 +38,8 @@
 #define POWER10_OFFSET 56
 
 #define STRING 3
-
+#define STRING_OFFSET 51
+#define MAX_STRING_SIZE 1500
 #define TYPE_OFFSET 50
 #define SIGN_OFFSET 51
 

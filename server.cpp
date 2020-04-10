@@ -16,7 +16,7 @@
 void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 													std::vector<int> &to_add) {
 	int ret_code;
-	char buffer[BUFLEN];
+	char buffer[BUFF_SIZE];
     memset(buffer, 0, sizeof(buffer));
 
 	printf("in add_tcp_client\n");
@@ -44,7 +44,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 void process_tcp_client_request(int sockfd, fd_set& read_fds,
 												std::vector<int>& to_delete) {
 	int ret_code;
-    char buffer[BUFLEN];
+    char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
 
     printf("in process_tcp_client_request\n");
@@ -98,10 +98,12 @@ int command_from_stdin(std::unordered_set<int> &all_sockets) {
 	}
 }
 
+// !!! intreaba de problema cu exit, dc nu se inchide socketul si se inchide cand dau ctrl^C
+
 void process_received_info(int sockfd) {
 	printf("din process_received_info\n");
 
-	char buffer[BUFLEN + 500];
+	char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
 
 	struct sockaddr_in client_addr;
@@ -113,7 +115,7 @@ void process_received_info(int sockfd) {
 								(struct sockaddr*) &client_addr, &client_len);
 	
 	// the buffer will be parsed into msg
-	char msg[BUFLEN];
+	char msg[BUFF_SIZE];
 	memset(msg, 0, sizeof(msg));
 	
 	// !!! poate are 50 bytes fix si n-are termnator de sir
@@ -264,28 +266,22 @@ void process_received_info(int sockfd) {
 			/* numarul de zerouri ce trebuie adaugate pentru o
 			reprezentare corecta a numarului */
 			int no_zeros = power10 - no_len + 1;
-			// printf("noZeroses: %d\n", no_zeros);
-
 			if (no_zeros > 0) {
 				/* se deplaseaza numarul cu nr_zeros la dreapta pentru a face loc 
 				pentru zero-urile ce urmeaza a fi adaugate */
 				memcpy(msg + no_offset + no_zeros, msg + no_offset, no_len);
 				no_len += no_zeros;
-				// printf("SSSSSSSSSSSss: %s\n", msg);
-
+				
 				// se adauga zero-urile
 				while (no_zeros != 0) {
 					msg[no_offset + no_zeros - 1] = '0';
 					--no_zeros;
 				}
-
-				// printf("Dupa adaugare de 0: %s\n", msg);
 			}
 			
 			if (power10 != 0) {
 				// se plaseaza caracterul '.'
 				memcpy(msg + no_offset + no_len - (power10 - 1), msg + no_offset + no_len - power10, power10);
-				// printf("DUPA DEPLASARE: %s\n", msg);
 
 				int dot_offset = no_offset + no_len - power10;
 				msg[dot_offset] = '.';
@@ -297,34 +293,31 @@ void process_received_info(int sockfd) {
 			break;
 		}
 
-	default:
-		break;
+		case STRING: {
+			msg[type_offset] = 'S';
+			msg[type_offset + 1] = 'T';
+			msg[type_offset + 2] = 'R';
+			msg[type_offset + 3] = 'I';
+			msg[type_offset + 4] = 'N';
+			msg[type_offset + 5] = 'G';
+
+			int s_line_s_offset3 = type_offset + 6;
+			msg[s_line_s_offset3] = ' ';
+			msg[s_line_s_offset3 + 1] = '-';
+			msg[s_line_s_offset3 + 2] = ' ';
+
+			// !!! atentie la strcyp 
+			int string_offset = s_line_s_offset3 + 3;
+			strncpy(msg + string_offset, buffer + STRING_OFFSET, MAX_STRING_SIZE);
+
+			break;
+		}
 	}
 
-	/// !!! poate mesajele de la UDP client nu au formatul specificat
+	// !!! poate nu se temina cu '\0' daca are fix 1500 caractere, strcpy nasol atunci
+	/// !!! poate mesajele de la UDP client nu au formatul specificat, trebuie testa eventual
 
 	printf("UDP Clinet spune: %s\n", msg);
-	//int i = 0;
-	// while (buffer[i] != '\0')
-	// {
-	// 	i++;
-	// }
-
-	// int j = i + 1;
-	// while (buffer[j] == 0 && j < BUFLEN + 500) {
-	// 	j++;
-	// }
-	
-	// if (j != BUFLEN + 500) {
-	// 	printf("Numar: %d\n", j);
-	// }
-
-
-
-	// unsigned int actual_nr;
-	// memcpy(&actual_nr, buffer + 52, 4);
-
-	// printf("UDP Client mai spune si: type: %d semn: %d numar: %d\n", val, semn, ntohl(actual_nr));
 
 }
 
@@ -333,6 +326,9 @@ void usage(char *file)
 	fprintf(stderr, "Usage: %s server_port\n", file);
 	exit(0);
 }
+
+// !!! exit-ul nu merge dupa ce inchid clientii!!!! poate shutdown e o problema
+// !!! poate nu inchid toti clientii
 
 int main(int argc, char *argv[])
 {
@@ -392,7 +388,7 @@ int main(int argc, char *argv[])
 	fdmax = std::max(fdmax, sockfd_tcp_listen);
     all_sockets.insert(sockfd_tcp_listen);
 
-	char buffer[BUFLEN];
+	char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
 
 	while (1) {

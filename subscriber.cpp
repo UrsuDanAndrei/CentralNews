@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 	int fdmax;			// valoare maxima fd din multimea read_fds
 	int sockfd, n, ret;
 	struct sockaddr_in serv_addr;
-	char buffer[BUFLEN];
+	char buffer[BUFF_SIZE];
 
 	if (argc < 3) {
 		usage(argv[0]);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
 		if (FD_ISSET(sockfd, &tmp_read_fds)){
 			//printf("ieeeeeee22222222222\n");
-			memset(buffer, 0, BUFLEN);
+			memset(buffer, 0, BUFF_SIZE);
 
 			n = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
 			DIE(n < 0, "recv");
@@ -91,8 +91,8 @@ int main(int argc, char *argv[])
 		} else if (FD_ISSET(0, &tmp_read_fds)){
 		//	printf("ieeeeeee\n");
   			// se citeste de la tastatura
-			memset(buffer, 0, BUFLEN);
-			fgets(buffer, BUFLEN - 1, stdin);
+			memset(buffer, 0, BUFF_SIZE);
+			fgets(buffer, BUFF_SIZE - 1, stdin);
 
 			if (strncmp(buffer, "exit", 4) == 0) {
 				break;
