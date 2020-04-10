@@ -200,6 +200,100 @@ void process_received_info(int sockfd) {
 			msg[type_offset + 8] = 'A';
 			msg[type_offset + 9] = 'L';
 
+			int s_line_s_offset3 = type_offset + 10;
+			msg[s_line_s_offset3] = ' ';
+			msg[s_line_s_offset3 + 1] = '-';
+			msg[s_line_s_offset3 + 2] = ' ';
+
+			uint16_t no;
+			memcpy(&no, buffer + SHORT_REAL_OFFSET, sizeof(uint16_t));
+			no = ntohs(no);
+
+			int no_offset = s_line_s_offset3 + 3;
+			int no_len = sprintf(msg + no_offset, "%d", no);
+
+			// se muta ultimele 2 cifre cu o pozitie la dreapta
+			// for (int i = no_offset + no_len; i >= no_offset + no_len - 1; --i) {
+			// 	msg[i] = msg[i - 1];
+			// }
+			memcpy(msg + no_offset + no_len - 1, msg + no_offset + no_len - 2, 2);
+
+
+			// !!! poate nu vrea sa completezi cu 0, gen 17 -> 17 nu 17 -> 17.00, ca
+			// la float de exemplu 
+			// se plaseaza caracterul '.'
+			int dot_offset = no_offset + no_len - 2;
+			msg[dot_offset] = '.';
+
+			int final_len = no_offset + no_len + 1;
+			msg[final_len] = '\0';
+
+			break;
+		}
+
+		case FLOAT: {
+			msg[type_offset] = 'F';
+			msg[type_offset + 1] = 'L';
+			msg[type_offset + 2] = 'O';
+			msg[type_offset + 3] = 'A';
+			msg[type_offset + 4] = 'T';
+
+			int s_line_s_offset3 = type_offset + 5;
+			msg[s_line_s_offset3] = ' ';
+			msg[s_line_s_offset3 + 1] = '-';
+			msg[s_line_s_offset3 + 2] = ' ';
+
+			// se plaseaza semnul '-' daca este cazul
+			uint8_t sign;
+			memcpy(&sign, buffer + SIGN_OFFSET, sizeof(uint8_t));
+
+			int no_offset = s_line_s_offset3 + 3;
+			if (sign == 1) {
+				msg[no_offset] = '-';
+				++no_offset;
+			}
+
+			uint32_t no;
+			memcpy(&no, buffer + FLOAT_OFFSET, sizeof(uint32_t));
+			no = ntohl(no);
+			int no_len = sprintf(msg + no_offset, "%d", no);
+
+			uint8_t power10;
+			memcpy(&power10, buffer + POWER10_OFFSET, sizeof(uint8_t));
+
+			/* numarul de zerouri ce trebuie adaugate pentru o
+			reprezentare corecta a numarului */
+			int no_zeros = power10 - no_len + 1;
+			// printf("noZeroses: %d\n", no_zeros);
+
+			if (no_zeros > 0) {
+				/* se deplaseaza numarul cu nr_zeros la dreapta pentru a face loc 
+				pentru zero-urile ce urmeaza a fi adaugate */
+				memcpy(msg + no_offset + no_zeros, msg + no_offset, no_len);
+				no_len += no_zeros;
+				// printf("SSSSSSSSSSSss: %s\n", msg);
+
+				// se adauga zero-urile
+				while (no_zeros != 0) {
+					msg[no_offset + no_zeros - 1] = '0';
+					--no_zeros;
+				}
+
+				// printf("Dupa adaugare de 0: %s\n", msg);
+			}
+			
+			if (power10 != 0) {
+				// se plaseaza caracterul '.'
+				memcpy(msg + no_offset + no_len - (power10 - 1), msg + no_offset + no_len - power10, power10);
+				// printf("DUPA DEPLASARE: %s\n", msg);
+
+				int dot_offset = no_offset + no_len - power10;
+				msg[dot_offset] = '.';
+
+				int final_len = no_offset + no_len + 1;
+				msg[final_len] = '\0';
+			}
+
 			break;
 		}
 
@@ -207,6 +301,7 @@ void process_received_info(int sockfd) {
 		break;
 	}
 
+	/// !!! poate mesajele de la UDP client nu au formatul specificat
 
 	printf("UDP Clinet spune: %s\n", msg);
 	//int i = 0;
