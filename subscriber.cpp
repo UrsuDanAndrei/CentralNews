@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	ret = connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
 
     // isi trimite baitul numele
-    memcpy(buffer, "gigel\0", 6);
+    memcpy(buffer, argv[3], 6);
     n = send(sockfd, buffer, strlen(buffer), 0);
 	DIE(n < 0, "send");
 

@@ -109,10 +109,12 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	// converteste char* in std::string
 	std::string name(buffer);
 	if (cli2id.find(name) == cli2id.end()) {
+		printf("clientul ");
+		std::cout << name << "adaugat in if" <<std::endl;
 		cli2id[name] = max_cli_id;
 		sockfd2cli[new_sockfd] = max_cli_id;
-		++max_cli_id;
 		clis.push_back(Client(max_cli_id, new_sockfd , true, name));
+		++max_cli_id;
 	} else {
 		int id = cli2id[name];
 		clis[id].on = true;
@@ -128,12 +130,14 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	}
 
 }
+// !!!!!!!!!!!!!!!!!!!1 mesajele celui de-al doilea cline sunt interpretate ca 
+// mesajele primului client
 
 void process_tcp_client_request(int sockfd, fd_set& read_fds,
 		std::vector<int>& to_delete,
 		std::unordered_map<int, int> sockfd2cli,
 		std::vector<Client> &clis,
-		std::unordered_map<std::string, std::unordered_set<int>> topic_subs) {
+		std::unordered_map<std::string, std::unordered_set<int>>& topic_subs) {
 	int ret_code;
     char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
@@ -153,7 +157,7 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 		// conexiunea s-a inchis
 		//printf("Client gigel disconnected. %d\n", sockfd);
 		std::cout << "Client " << cli.name
-							   << "disconected" << std::endl;
+							   << " disconected" << std::endl;
 
 		// se scoate din multimea de citire socketul inchis 
 		// se elimina clientul din read_fds si se va sterge din lista de socketi
@@ -178,9 +182,13 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 		std::string str_topic(topic);
 
 		if (strncmp(sub_unsub, "subscribe", 9) == 0) {
+			printf ("din subscribe\n");
 			cli.topic_sf[str_topic] = true;
 
 			if (topic_subs.find(str_topic) == topic_subs.end()) {
+				printf("din if new topic, topicul adaugat este: ");
+				std::cout << str_topic << " ";
+				printf("clientul abonat este: %d\n", id);
 				topic_subs[str_topic] = std::unordered_set<int>();
 				topic_subs[str_topic].insert(id);
 			} else {
@@ -195,6 +203,7 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 
 			// std::unordered_map<std::string, bool> &topic_sf = cli.topic_sf;
 			if (sf[0] == '0') {
+				printf("Abonat cu 0\n");
 				cli.topic_sf[str_topic] = false;
 			} else {
 				cli.topic_sf[str_topic] = true;
@@ -251,6 +260,7 @@ void send_to_all_subscribers(const char *topic, const char *msg,
 	// daca este prima oara cand se face referire la acest topic, inseamna ca niciun
 	// client nu este abonat inca
 	if (topic_subs.find(str_topic) == topic_subs.end()) {
+		printf("nou topic din send_all_subscribers\n");
 		topic_subs[str_topic] = std::unordered_set<int>();
 		return;
 	}
@@ -262,6 +272,8 @@ void send_to_all_subscribers(const char *topic, const char *msg,
 
 		if (cli.on) {
 			// poate trebuie alte falg-uri
+			printf("Trimit catre clientul: ");
+			std::cout << cli.name << std::endl;
 			send(cli.sockfd, msg, strlen(msg) + 1, 0);
 		} else {
 			if (cli.topic_sf[str_topic] == true) {
@@ -492,7 +504,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 	/// !!! poate mesajele de la UDP client nu au formatul specificat, trebuie testa eventual
 
 
-	// printf("UDP Clinet spune: %s\n", msg);
+	 printf("UDP Clinet spune: %s\n", msg);
 	// converteste din char* in std::string
 	// in buffer primul lucru se afla topicul discutiei
 	send_to_all_subscribers(buffer, msg, clis, topic_subs);
