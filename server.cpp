@@ -11,70 +11,88 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-
 #include "utils.h"
+
+class Client {
+ public:
+	int id;
+	int sockfd;
+	bool on;
+
+	std::string name;
+	std::vector<std::string> inbox;
+	std::unordered_map<std::string, bool> topic_sf;
+
+
+	Client(int id, int sockfd, bool on, std::string name) {
+		this->id = id;
+		this->sockfd = sockfd;
+		this->on = on;
+		this->name = name;
+	}
+
+	bool is_on() {
+		return on;
+	}
+};
 
 	// std::unordered_map<std::string, int> cli2id;
 	// 
 	// std::vector<bool> cli_status;
 	// // std::unordered_map<int, std::string> sockfd2cli;
 
-void process_new_tcp_client(int sockfd,
-							std::unordered_map<int, std::string> &sockfd2cli,
-							std::unordered_map<std::string, int> &cli2id,
-							std::vector<bool> &cli_status,
-							std::vector<std::vector<std::string>> &cli_inbox,
-							const std::string& name, int &max_cli_id) {
-	sockfd2cli[sockfd] = name;
+// void process_new_tcp_client(int sockfd, const std::string &name,
+// 							std::unordered_map<std::string, int> &cli2id,
+// 							std::vector<Client> &clis,
+// 							int &max_cli_id) {
+// 	// cli2id[name] = max_cli_id;
+// 	// ++max_cli_id;
+// 	// clis.push_back(Client(max_cli_id, sockfd , true, name));
+// }
 
-	cli2id[name] = max_cli_id;
-	++max_cli_id;
+// // !!! TODO scoate din sckfd2cli cand elimini socket-ul
+// // !!! am ales o varianta mai eficienta care nu trece prin 2 funcii de hashing
 
-	cli_status.push_back(true);
-	cli_inbox.push_back(std::vector<std::string>());
-}
+// void update_old_tcp_client(int sockfd,
+// 							std::unordered_map<std::string, int> &cli2id,
+// 							std::vector<Client> &clis,
+// 							const std::string &name) {
+	
+// 	// int cli_id = cli2id[name];
+// 	// clis[cli_id].on = true;
 
-// !!! TODO scoate din sckfd2cli cand elimini socket-ul
-// !!! am ales o varianta mai eficienta care nu trece prin 2 funcii de hashing
 
-void update_old_tcp_client(int sockfd,
-							std::unordered_map<int, std::string> &sockfd2cli,
-							std::unordered_map<std::string, int> &cli2id,
-							std::vector<bool> &cli_status,
-							std::vector<std::vector<std::string>> &cli_inbox,
-							const std::string& name) {
-	sockfd2cli[sockfd] = name;
+// 	// sockfd2cli[sockfd] = name;
 
-	int cli_id = cli2id[name];
-	cli_status[cli_id] = true;
 
-	// se trimit toate mesajele din inbox
-	for (auto &msg : cli_inbox[cli_id]) {
-		send(sockfd, msg.c_str(), msg.size() + 1, 0);
-	}
+// 	// // se trimit toate mesajele din inbox
+// 	// for (auto &msg : cli_inbox[cli_id]) {
+// 	// 	send(sockfd, msg.c_str(), msg.size() + 1, 0);
+// 	// }
 
-	// se goleste inbox-ul
-	cli_inbox.clear();
-}
+// 	// // se goleste inbox-ul
+// 	// cli_inbox.clear();
+// }
 
 void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 							std::vector<int> &to_add,
-							std::unordered_map<int, std::string> &sockfd2cli,
+							std::unordered_map<int, int> sockfd2cli,
 							std::unordered_map<std::string, int> &cli2id,
-							std::vector<bool> &cli_status,
-							std::vector<std::vector<std::string>> &cli_inbox,
+							std::vector<Client> &clis,
 							int &max_cli_id) {
+	printf("in add_tcp_client\n");
+
 	int ret_code;
 	char buffer[BUFF_SIZE];
     memset(buffer, 0, sizeof(buffer));
 
-	printf("in add_tcp_client\n");
 	// a venit o cerere de conexiune pe socketul inactiv (cel cu listen),
 	// pe care serverul o accepta
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
-	int new_sockfd = accept(sockfd_tcp_listen, (struct sockaddr *) &client_addr, &client_len);
+	struct sockaddr_in cli_addr;
+	socklen_t cli_len = sizeof(cli_addr);
+	int new_sockfd = accept(sockfd_tcp_listen, (struct sockaddr *) &cli_addr, &cli_len);
 	DIE(new_sockfd < 0, "accept");
+
 
 	// se adauga noul socket intors de accept() la multimea descriptorilor de citire
 	FD_SET(new_sockfd, &read_fds);
@@ -85,22 +103,37 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	ret_code = recv(new_sockfd, buffer, sizeof(buffer), 0);
 	DIE(ret_code < 0, "recv");
 
+	printf("New client %s connected from %s:%d.\n",
+		buffer ,inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+
 	// converteste char* in std::string
 	std::string name(buffer);
 	if (cli2id.find(name) == cli2id.end()) {
-		process_new_tcp_client(new_sockfd, sockfd2cli,
-								cli2id, cli_status, cli_inbox, name, max_cli_id);
+		cli2id[name] = max_cli_id;
+		sockfd2cli[new_sockfd] = max_cli_id;
+		++max_cli_id;
+		clis.push_back(Client(max_cli_id, new_sockfd , true, name));
 	} else {
-		update_old_tcp_client(new_sockfd, sockfd2cli, cli2id, cli_status,
-																cli_inbox, name);
+		int id = cli2id[name];
+		clis[id].on = true;
+		clis[id].sockfd = new_sockfd;
+		sockfd2cli[new_sockfd] = id;
+
+		std::vector<std::string> &inbox = clis[id].inbox;
+		for (auto& msg : inbox) {
+			send(clis[id].sockfd, msg.c_str(), msg.size() + 1, 0);
+		}
+
+		inbox.clear();
 	}
 
-	printf("New client %s connected from %s:%d.\n",
-		buffer ,inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 }
 
 void process_tcp_client_request(int sockfd, fd_set& read_fds,
-												std::vector<int>& to_delete) {
+		std::vector<int>& to_delete,
+		std::unordered_map<int, int> sockfd2cli,
+		std::vector<Client> &clis,
+		std::unordered_map<std::string, std::unordered_set<int>> topic_subs) {
 	int ret_code;
     char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
@@ -111,9 +144,16 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 	ret_code = recv(sockfd, buffer, sizeof(buffer), 0);
 	DIE(ret_code < 0, "recv");
 
+	int id = sockfd2cli[sockfd];
+	Client& cli = clis[id];
+
+	std::cout << "Client name is: " << cli.name << std::endl;
+
 	if (ret_code == 0) {
 		// conexiunea s-a inchis
-		printf("Client (CLIENT_ID) disconnected. %d\n", sockfd);
+		//printf("Client gigel disconnected. %d\n", sockfd);
+		std::cout << "Client " << cli.name
+							   << "disconected" << std::endl;
 
 		// se scoate din multimea de citire socketul inchis 
 		// se elimina clientul din read_fds si se va sterge din lista de socketi
@@ -121,11 +161,54 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 		FD_CLR(sockfd, &read_fds);
 		to_delete.push_back(sockfd);
 
+		cli.on = false;
+		sockfd2cli.erase(sockfd);
+
 		// closing connection
 		shutdown(sockfd, SHUT_RDWR);
 		close(sockfd);
 	} else {
 		printf ("S-a primit de la clientul de pe socketul %d mesajul: %s\n", sockfd, buffer);
+
+		// !!! strncmp, poate introduci mesaje de verificare pentru
+		// !!! a fi sigur ca primesti un input bun de la client, ai avut probleme aici
+		char *sub_unsub = strtok(buffer, " ");
+		char *topic = strtok(NULL, " ");
+		char *sf = strtok(NULL, " ");
+		std::string str_topic(topic);
+
+		if (strncmp(sub_unsub, "subscribe", 9) == 0) {
+			cli.topic_sf[str_topic] = true;
+
+			if (topic_subs.find(str_topic) == topic_subs.end()) {
+				topic_subs[str_topic] = std::unordered_set<int>();
+				topic_subs[str_topic].insert(id);
+			} else {
+				std::unordered_set<int>& subs = topic_subs[str_topic];
+				if (subs.find(id) == subs.end()) {
+					subs.insert(id);
+				} else {
+					// handle error este deja acolo
+					// poate vrea sa fie subscribed altfel
+				}
+			}
+
+			// std::unordered_map<std::string, bool> &topic_sf = cli.topic_sf;
+			if (sf[0] == '0') {
+				cli.topic_sf[str_topic] = false;
+			} else {
+				cli.topic_sf[str_topic] = true;
+			}
+		} else if (strncmp(sub_unsub, "unsubscribe", 11) == 0) {
+			printf("din unsubscribe\n");
+			// cazul cu unsubscribe
+			// !!! poate testezi cazul cu nu este subscribed
+			// !!! poate testezi cazul in care nu exista topic-ul ala
+
+			std::unordered_set<int> &subs = topic_subs[str_topic];
+			subs.erase(id);
+			cli.topic_sf.erase(str_topic);
+		}
 	}
 }
 
@@ -159,11 +242,11 @@ int command_from_stdin(std::unordered_set<int> &all_sockets) {
 // !!!!!!!!!1!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111 am nevoie si de un std::vector cli2sockfd
 
 void send_to_all_subscribers(const char *topic, const char *msg,
-		std::vector<bool> &cli_status,
-		std::vector<std::vector<std::string>> &cli_inbox,
+		std::vector<Client> &clis,
 		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs) {
 	std::string str_topic(topic);
 	std::string str_msg(msg);
+	printf("din send_to_all_subscribers\n");
 
 	// daca este prima oara cand se face referire la acest topic, inseamna ca niciun
 	// client nu este abonat inca
@@ -172,20 +255,26 @@ void send_to_all_subscribers(const char *topic, const char *msg,
 		return;
 	}
 
-	std::unordered_set<int>& cli_ids = topic_subs[str_topic];
-	for (auto it = cli_ids.begin(); it != cli_ids.end(); ++it) {
+	std::unordered_set<int>& subs = topic_subs[str_topic];
+	for (auto it = subs.begin(); it != subs.end(); ++it) {
 		int id = *it;
-		if (cli_status[id] == true) {
-				////////////////////////////////////////////////////////////////// aici
+		Client& cli = clis[id];
+
+		if (cli.on) {
+			// poate trebuie alte falg-uri
+			send(cli.sockfd, msg, strlen(msg) + 1, 0);
+		} else {
+			if (cli.topic_sf[str_topic] == true) {
+				cli.inbox.push_back(str_msg);
+			}
 		}
 	} 
 }
 
 // !!! intreaba de problema cu exit, dc nu se inchide portul cand dau exit si se inchide cand dau ctrl^C
 // !!! sa se poata adauga topics si in tcp subscribe on topic
-void process_received_info(int sockfd, std::vector<bool> &cli_status,
-		std::vector<std::vector<std::string>> &cli_inbox
-		std::unordered_map<std::string, std::unordered_set<int>> topic_subs) {
+void process_received_info(int sockfd, std::vector<Client> &clis,
+		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs) {
 	printf("din process_received_info\n");
 
 	char buffer[BUFF_SIZE];
@@ -406,7 +495,7 @@ void process_received_info(int sockfd, std::vector<bool> &cli_status,
 	// printf("UDP Clinet spune: %s\n", msg);
 	// converteste din char* in std::string
 	// in buffer primul lucru se afla topicul discutiei
-	send_to_all_subscribers();
+	send_to_all_subscribers(buffer, msg, clis, topic_subs);
 }
 
 // !!! m-am gandit sa atribui fiecarui client
@@ -486,9 +575,8 @@ int main(int argc, char *argv[])
 	int max_cli_id = 0;
 	std::unordered_map<std::string, int> cli2id;
 	std::unordered_map<std::string, std::unordered_set<int>> topic_subs;
-	std::vector<bool> cli_status;
-	std::unordered_map<int, std::string> sockfd2cli;
-	std::vector<std::vector<std::string>> cli_inbox;
+	std::unordered_map<int, int> sockfd2cli;
+	std::vector<Client> clis;
 
 	while (1) {
 		tmp_fds = read_fds;
@@ -510,13 +598,13 @@ int main(int argc, char *argv[])
 					}
 				} else if (fd == sockfd_udp) {
                     // adaug mesajele primite
-					process_received_info(fd);
+					process_received_info(fd, clis, topic_subs);
                 } else if (fd == sockfd_tcp_listen) {
 					add_tcp_client(fdmax, sockfd_tcp_listen, read_fds, to_add,
-									sockfd2cli, cli2id, cli_status, cli_inbox,
-									max_cli_id);
+										sockfd2cli, cli2id, clis, max_cli_id);
 				} else {
-					process_tcp_client_request(fd, read_fds, to_delete);
+					process_tcp_client_request(fd, read_fds, to_delete,
+												sockfd2cli, clis, topic_subs);
 				}
 			}
 		}
