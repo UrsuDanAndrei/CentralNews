@@ -76,7 +76,7 @@ class Client {
 
 void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 							std::vector<int> &to_add,
-							std::unordered_map<int, int> sockfd2cli,
+							std::unordered_map<int, int> &sockfd2cli,
 							std::unordered_map<std::string, int> &cli2id,
 							std::vector<Client> &clis,
 							int &max_cli_id) {
@@ -110,7 +110,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	std::string name(buffer);
 	if (cli2id.find(name) == cli2id.end()) {
 		printf("clientul ");
-		std::cout << name << "adaugat in if" <<std::endl;
+		std::cout << name << " adaugat in if" <<std::endl;
 		cli2id[name] = max_cli_id;
 		sockfd2cli[new_sockfd] = max_cli_id;
 		clis.push_back(Client(max_cli_id, new_sockfd , true, name));
@@ -134,10 +134,10 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 // mesajele primului client
 
 void process_tcp_client_request(int sockfd, fd_set& read_fds,
-		std::vector<int>& to_delete,
-		std::unordered_map<int, int> sockfd2cli,
+		std::vector<int> &to_delete,
+		std::unordered_map<int, int> &sockfd2cli,
 		std::vector<Client> &clis,
-		std::unordered_map<std::string, std::unordered_set<int>>& topic_subs) {
+		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs) {
 	int ret_code;
     char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
@@ -151,7 +151,7 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 	int id = sockfd2cli[sockfd];
 	Client& cli = clis[id];
 
-	std::cout << "Client name is: " << cli.name << std::endl;
+	std::cout << "Client name is: " << cli.name << " and id is: " << id << std::endl;
 
 	if (ret_code == 0) {
 		// conexiunea s-a inchis
