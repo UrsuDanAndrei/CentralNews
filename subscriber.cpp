@@ -1,3 +1,4 @@
+#include <bits/stdc++.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,101 +12,83 @@
 
 void usage(char *file)
 {
-	fprintf(stderr, "Usage: %s server_address server_port\n", file);
+	fprintf(stderr, "Usage: %s server_address server_port nume_client\n", file);
 	exit(0);
 }
 
 int main(int argc, char *argv[])
 {
-	//setvbuf(stdout, NULL, _IONBF, 0);
-	int fdmax;			// valoare maxima fd din multimea read_fds
-	int sockfd, n, ret;
-	struct sockaddr_in serv_addr;
-	char buffer[BUFF_SIZE];
-
-	if (argc < 3) {
+	if (argc != 4) {
 		usage(argv[0]);
 	}
 
+	int fdmax = -1;
+	int sockfd;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	DIE(sockfd < 0, "socket");
+	fdmax = std::max(fdmax, sockfd);
+
+	int ret_code;
+	struct sockaddr_in serv_addr;
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(atoi(argv[2]));
-	ret = inet_aton(argv[1], &serv_addr.sin_addr);
-	DIE(ret == 0, "inet_aton");
+	ret_code = inet_aton(argv[1], &serv_addr.sin_addr);
+	DIE(ret_code == 0, "inet_aton");
 
-	ret = connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
+	ret_code = connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
+	DIE(ret_code < 0, "connect");
 
-    // isi trimite baitul numele
-    memcpy(buffer, argv[3], 6);
-    n = send(sockfd, buffer, strlen(buffer), 0);
-	DIE(n < 0, "send");
+	char buffer[BUFF_SIZE];
+	memset(buffer, 0, sizeof(buffer));
 
-	DIE(ret < 0, "connect");
+    memcpy(buffer, argv[3], strlen(argv[3]));
+    ret_code = send(sockfd, buffer, strlen(buffer), 0);
+	DIE(ret_code < 0, "send");
 
-	fdmax = sockfd;
-
-	fd_set read_fds;	// multimea de citire folosita in select()
-	fd_set write_fds;
-
-	fd_set tmp_read_fds;		// multime folosita temporar
-	fd_set tmp_write_fds;
+	fd_set read_fds;
+	fd_set tmp_fds;
 
 	FD_ZERO(&read_fds);
-	FD_ZERO(&tmp_read_fds);
-
-	FD_ZERO(&write_fds);
-	FD_ZERO(&tmp_write_fds);
+	FD_ZERO(&tmp_fds);
 
 	// citire de la tastatura
 	FD_SET(0, &read_fds);
 
+	// socketul tcp
 	FD_SET(sockfd, &read_fds);
-	// FD_SET(sockfd, &write_fds);
-
-	struct sockaddr_in helper;
 
 	while (1) {
-		// FD_ZERO(&tmp_write_fds);
-		FD_ZERO(&tmp_read_fds);
-		tmp_read_fds = read_fds; 
-		// tmp_write_fds = write_fds;
+		tmp_fds = read_fds;
 		
-		ret = select(fdmax + 1, &tmp_read_fds, NULL, NULL, NULL);
-		DIE(ret < 0, "select");
+		ret_code = select(fdmax + 1, &tmp_fds, NULL, NULL, NULL);
+		DIE(ret_code < 0, "select");
 
-		if (FD_ISSET(sockfd, &tmp_read_fds)){
-			//printf("ieeeeeee22222222222\n");
+		if (FD_ISSET(0, &tmp_fds)){
 			memset(buffer, 0, BUFF_SIZE);
-
-			n = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
-			DIE(n < 0, "recv");
-
-			if (n == 0) {
-				printf("Serverul a inchis conexiunea\n");
-				break;
-			}
-
-			printf("Am primit de la server: %s\n", buffer);
-		} else if (FD_ISSET(0, &tmp_read_fds)){
-		//	printf("ieeeeeee\n");
-  			// se citeste de la tastatura
-			memset(buffer, 0, BUFF_SIZE);
-			fgets(buffer, BUFF_SIZE - 1, stdin);
+			fgets(buffer, sizeof(buffer) - 1, stdin);
 
 			if (strncmp(buffer, "exit", 4) == 0) {
 				break;
 			}
 
-			// se trimite mesaj la server
-			n = send(sockfd, buffer, strlen(buffer), 0);
-			DIE(n < 0, "send");
+			ret_code = send(sockfd, buffer, strlen(buffer), 0);
+			DIE(ret_code < 0, "send");
+		} else if (FD_ISSET(sockfd, &tmp_fds)){
+			memset(buffer, 0, BUFF_SIZE);
+			ret_code = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
+			DIE(ret_code < 0, "recv");
+
+			if (ret_code == 0) {
+				printf("Serverul a inchis conexiunea\n");
+				shutdown(sockfd, SHUT_RDWR);
+				close(sockfd);
+				return 0;
+			}
+
+			printf("Am primit de la server: %s\n", buffer);
 		}
 	}
-
-	//shutdown(sockfd, 2);
-	close(sockfd);
 
 	return 0;
 }
