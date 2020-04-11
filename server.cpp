@@ -122,8 +122,12 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 		sockfd2cli[new_sockfd] = id;
 
 		std::vector<std::string> &inbox = clis[id].inbox;
+		printf("incep sa trimit din inbox pentru clientul: ");
+		std::cout << clis[id].name << std::endl;
 		for (auto& msg : inbox) {
+			printf("trimit\n");
 			send(clis[id].sockfd, msg.c_str(), msg.size() + 1, 0);
+			usleep(100);
 		}
 
 		inbox.clear();
@@ -176,12 +180,12 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 
 		// !!! strncmp, poate introduci mesaje de verificare pentru
 		// !!! a fi sigur ca primesti un input bun de la client, ai avut probleme aici
-		char *sub_unsub = strtok(buffer, " ");
-		char *topic = strtok(NULL, " ");
-		char *sf = strtok(NULL, " ");
+		char *sub_unsub = strtok(buffer, " \n");
+		char *topic = strtok(NULL, " \n");
 		std::string str_topic(topic);
 
 		if (strncmp(sub_unsub, "subscribe", 9) == 0) {
+			char *sf = strtok(NULL, " \n");
 			printf ("din subscribe\n");
 			cli.topic_sf[str_topic] = true;
 
@@ -209,12 +213,22 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds,
 				cli.topic_sf[str_topic] = true;
 			}
 		} else if (strncmp(sub_unsub, "unsubscribe", 11) == 0) {
-			printf("din unsubscribe\n");
+			printf("din unsubscribe, topic: ");
+			std::cout << str_topic;
+			std::cout << "lipita" << std::endl;
 			// cazul cu unsubscribe
 			// !!! poate testezi cazul cu nu este subscribed
 			// !!! poate testezi cazul in care nu exista topic-ul ala
+			if (topic_subs.find(str_topic) == topic_subs.end()) {
+				printf("Nu exista acest topic\n");
+			}
 
 			std::unordered_set<int> &subs = topic_subs[str_topic];
+
+			if (subs.find(id) == subs.end()) {
+				printf("nu exista clientul %d in topic_subs\n", id);
+			}
+
 			subs.erase(id);
 			cli.topic_sf.erase(str_topic);
 		}
@@ -277,6 +291,8 @@ void send_to_all_subscribers(const char *topic, const char *msg,
 			send(cli.sockfd, msg, strlen(msg) + 1, 0);
 		} else {
 			if (cli.topic_sf[str_topic] == true) {
+				printf("Adaug in inbox pentru: ");
+				std::cout << cli.name << std::endl;
 				cli.inbox.push_back(str_msg);
 			}
 		}
