@@ -10,6 +10,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
 
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 UDP s-ar putea sa nu uneasca mesajele
 
 	// !!! MSG_WAITALL poate trebuie altceva
 	recvfrom(sockfd, buffer, sizeof(buffer), MSG_WAITALL,

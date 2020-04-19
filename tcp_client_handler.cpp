@@ -19,7 +19,6 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	int new_sockfd = accept(sockfd_tcp_listen, (struct sockaddr *) &cli_addr, &cli_len);
 	DIE(new_sockfd < 0, "accept");
 
-
 	// se adauga noul socket intors de accept() la multimea descriptorilor de citire
 	FD_SET(new_sockfd, &read_fds);
 	fdmax = std::max(fdmax, new_sockfd);
@@ -30,7 +29,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	DIE(ret_code < 0, "recv");
 
 	printf("New client %s connected from %s:%d.\n",
-		buffer ,inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+		buffer, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 
 	// converteste char* in std::string
 	std::string name(buffer);

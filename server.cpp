@@ -36,9 +36,9 @@ int command_from_stdin(std::unordered_set<int> &all_sockets) {
 		return 0;
 	} else {
 		// exit este singura comanda specificata in enunt
-		// printf("Comanda introdusa este invalida!\n");
-		// printf("Lista de comenzi valide:\n");
-		// printf("exit\n\n");
+		printf("\nComanda introdusa este invalida!\n");
+		printf("Lista de comenzi valide:\n");
+		printf("exit\n\n");
 
 		return 1;
 	}

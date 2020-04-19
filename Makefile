@@ -4,6 +4,9 @@ PORT_SERVER = 10000
 # Adresa IP a serverului
 IP_SERVER = 127.0.0.1
 
+# Nume subscriber
+NUME = gigel
+
 all: server subscriber
 
 # Pentru server
@@ -36,7 +39,7 @@ run_server:
 
 # Ruleaza clientul 	
 run_subscriber:
-	./subscriber ${IP_SERVER} ${PORT_SERVER}
+	./subscriber ${IP_SERVER} ${PORT_SERVER} ${NUME}
 
 clean:
 	rm -f server subscriber *.o
