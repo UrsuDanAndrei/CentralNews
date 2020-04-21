@@ -20,7 +20,7 @@
 void process_received_info(int sockfd, std::vector<Client> &clis,
 		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs);
 
-void send_to_all_subscribers(const char *topic, const char *msg,
+void send_to_all_subscribers(const char *topic, format *msg,
 		std::vector<Client> &clis,
 		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs);
 

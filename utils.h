@@ -43,4 +43,9 @@
 #define TYPE_OFFSET 50
 #define SIGN_OFFSET 51
 
+struct format {
+	int len;
+	char content[BUFF_SIZE];
+};
+
 #endif // __HELPERS_H__

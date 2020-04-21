@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "utils.h"
 
 class Client {
  public:
@@ -12,7 +13,7 @@ class Client {
 	bool on;
 
 	std::string name;
-	std::vector<std::string> inbox;
+	std::vector<format*> inbox;
 	std::unordered_map<std::string, bool> topic_sf;
 
 

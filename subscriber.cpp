@@ -84,6 +84,8 @@ int main(int argc, char *argv[])
 
 	char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
+	// format *msg = (format*) malloc(sizeof(format));
+	// memset(msg, 0, sizeof(format));
 
     memcpy(buffer, argv[1], strlen(argv[1]));
     ret_code = send(sockfd, buffer, strlen(buffer), 0);
@@ -128,11 +130,12 @@ int main(int argc, char *argv[])
 			} else {
 				printf("unsubscribed %s\n", topic);
 			}
-		} else if (FD_ISSET(sockfd, &tmp_fds)){
+		} else if (FD_ISSET(sockfd, &tmp_fds)) {
 			memset(buffer, 0, BUFF_SIZE);
 			ret_code = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
-			DIE(ret_code < 0, "recv");
+			format *msg = (format*) buffer;
 
+			DIE(ret_code < 0, "recv");
 			if (ret_code == 0) {
 				printf("Serverul a inchis conexiunea\n");
 				shutdown(sockfd, SHUT_RDWR);
@@ -140,10 +143,10 @@ int main(int argc, char *argv[])
 				return 0;
 			}
 
-
-			printf("Am primit de la server: %s\n", buffer);
+			printf("Am primit de la server: %s\n", msg->content);
 		}
 	}
 
+	// free(msg);
 	return 0;
 }

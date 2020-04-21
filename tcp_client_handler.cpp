@@ -28,6 +28,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	ret_code = recv(new_sockfd, buffer, sizeof(buffer), 0);
 	DIE(ret_code < 0, "recv");
 
+	// !!!!!! s-ar putea sa primeasca si o cerere de unsubscribe / subscribe in acelasi timp
 	printf("New client %s connected from %s:%d.\n",
 		buffer, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 
@@ -46,12 +47,14 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 		clis[id].sockfd = new_sockfd;
 		sockfd2cli[new_sockfd] = id;
 
-		std::vector<std::string> &inbox = clis[id].inbox;
+		std::vector<format*> &inbox = clis[id].inbox;
 		printf("incep sa trimit din inbox pentru clientul: ");
 		std::cout << clis[id].name << std::endl;
 		for (auto& msg : inbox) {
 			printf("trimit\n");
-			send(clis[id].sockfd, msg.c_str(), msg.size() + 1, 0);
+			send(clis[id].sockfd, msg, msg->len, 0);
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11 fara free
+			free(msg);
 			usleep(100);
 		}
 
