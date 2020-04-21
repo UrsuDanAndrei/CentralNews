@@ -241,6 +241,7 @@ void send_to_all_subscribers(const char *topic, format *msg,
 	if (topic_subs.find(str_topic) == topic_subs.end()) {
 		printf("nou topic din send_all_subscribers\n");
 		// topic_subs[str_topic] = std::unordered_set<int>();
+		free(msg);
 		return;
 	}
 
@@ -259,9 +260,14 @@ void send_to_all_subscribers(const char *topic, format *msg,
 			if (cli.topic_sf[str_topic] == true) {
 				printf("Adaug in inbox pentru: ");
 				std::cout << cli.name << std::endl;
-				cli.inbox.push_back(msg);
+
+				format* copy_msg = (format *) malloc(sizeof(format));
+				memcpy(copy_msg, msg, sizeof(format));
+				cli.inbox.push_back(copy_msg);
 				// !!!! se face o copie acici, poate ar fi util ca format sa fie o clasa cu copy constructor and all
 			}
 		}
-	} 
+	}
+
+	free(msg);
 }

@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <bits/stdc++.h>
 #include <iostream>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <string>
 #include <string.h>
@@ -17,7 +18,7 @@
 #include <unordered_set>
 #include <vector>
 
-void process_tcp_client_request(int sockfd, fd_set& read_fds,
+void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 		std::vector<int> &to_delete,
 		std::unordered_map<int, int> &sockfd2cli,
 		std::vector<Client> &clis,

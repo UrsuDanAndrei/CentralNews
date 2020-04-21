@@ -154,8 +154,48 @@ int main(int argc, char *argv[])
 					add_tcp_client(fdmax, sockfd_tcp_listen, read_fds, to_add,
 										sockfd2cli, cli2id, clis, max_cli_id);
 				} else {
-					process_tcp_client_request(fd, read_fds, to_delete,
+					memset(buffer, 0, sizeof(buffer));
+
+					// s-au primit date pe unul din socketii de client,
+					// asa ca serverul trebuie sa le receptioneze
+					ret_code = recv(fd, buffer, BUFF_SIZE, 0);
+					DIE(ret_code < 0, "recv");
+					int recv_info_size = ret_code;
+
+					int id = sockfd2cli[fd];
+					Client& cli = clis[id];
+
+					std::cout << "Client name is: " << cli.name << " and id is: " << id << std::endl;
+
+					if (ret_code == 0) {
+						// conexiunea s-a inchis
+						//printf("Client gigel disconnected. %d\n", sockfd);
+						std::cout << "Client " << cli.name
+											<< " disconected" << std::endl;
+
+						// se scoate din multimea de citire socketul inchis 
+						// se elimina clientul din read_fds si se va sterge din lista de socketi
+						// activi
+						FD_CLR(fd, &read_fds);
+						to_delete.push_back(fd);
+
+						cli.on = false;
+						sockfd2cli.erase(fd);
+
+						// closing connection
+						shutdown(fd, SHUT_RDWR);
+						close(fd);
+
+						continue;
+					}
+
+					int msg_offset = 0;
+					while (msg_offset < recv_info_size) {
+						format* msg = (format *) (buffer + msg_offset);
+						process_tcp_client_request(fd, read_fds, msg->content, to_delete,
 												sockfd2cli, clis, topic_subs);
+						msg_offset += msg->len;
+					}
 				}
 			}
 		}

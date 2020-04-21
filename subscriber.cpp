@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
+
 #include "utils.h"
 
 void usage(char *file)
@@ -67,11 +69,16 @@ int main(int argc, char *argv[])
 
 	int fdmax = -1;
 	int sockfd;
+	int ret_code;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	DIE(sockfd < 0, "socket");
 	fdmax = std::max(fdmax, sockfd);
 
-	int ret_code;
+	// disable NIGLE Algorithm on this socket
+	uint32_t disable = 1;
+	ret_code = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &disable, sizeof(uint32_t));
+	DIE(ret_code < 0, "setsockopt");
+
 	struct sockaddr_in serv_addr;
 
 	serv_addr.sin_family = AF_INET;
@@ -82,13 +89,19 @@ int main(int argc, char *argv[])
 	ret_code = connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
 	DIE(ret_code < 0, "connect");
 
+
 	char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
 	// format *msg = (format*) malloc(sizeof(format));
 	// memset(msg, 0, sizeof(format));
 
-    memcpy(buffer, argv[1], strlen(argv[1]));
-    ret_code = send(sockfd, buffer, strlen(buffer), 0);
+	// trimite datele in formatul bun!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	format *msg_name = (format *) malloc(sizeof(format));
+	memset(msg_name, 0, sizeof(format));
+
+    memcpy(msg_name->content, argv[1], strlen(argv[1]));
+	msg_name->len = 4 + strlen(argv[1]) + 1;
+    ret_code = send(sockfd, msg_name, msg_name->len, 0);
 	DIE(ret_code < 0, "send");
 
 	fd_set read_fds;
@@ -103,6 +116,8 @@ int main(int argc, char *argv[])
 	// socketul tcp
 	FD_SET(sockfd, &read_fds);
 
+	format *msg_to_send = (format *) malloc(sizeof(format));
+
 	while (1) {
 		tmp_fds = read_fds;
 		
@@ -110,20 +125,21 @@ int main(int argc, char *argv[])
 		DIE(ret_code < 0, "select");
 
 		if (FD_ISSET(0, &tmp_fds)) {
-			memset(buffer, 0, BUFF_SIZE);
-			fgets(buffer, sizeof(buffer) - 1, stdin);
+			memset(msg_to_send, 0, sizeof(format));
+			fgets(msg_to_send->content, BUFF_SIZE, stdin);
 
-			int ret_code = check_correct_input_subscriber(buffer);
+			int ret_code = check_correct_input_subscriber(msg_to_send->content);
 			if (ret_code == -1) {
 				continue;
 			} else if (ret_code == 0) {
 				break;
 			}
 
-			ret_code = send(sockfd, buffer, strlen(buffer), 0);
+			msg_to_send->len = 4 + strlen(msg_to_send->content) + 1;
+			ret_code = send(sockfd, msg_to_send, msg_to_send->len, 0);
 			DIE(ret_code < 0, "send");
 
-			char *sub_unsub = strtok(buffer, " \n");
+			char *sub_unsub = strtok(msg_to_send->content, " \n");
 			char *topic = strtok(NULL, " \n");
 			if (strncmp("subscribe", sub_unsub, 9) == 0) {
 				printf("subscribed %s\n", topic);
@@ -132,10 +148,9 @@ int main(int argc, char *argv[])
 			}
 		} else if (FD_ISSET(sockfd, &tmp_fds)) {
 			memset(buffer, 0, BUFF_SIZE);
-			ret_code = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
-			format *msg = (format*) buffer;
-
+			ret_code = recv(sockfd, buffer, BUFF_SIZE, 0);
 			DIE(ret_code < 0, "recv");
+
 			if (ret_code == 0) {
 				printf("Serverul a inchis conexiunea\n");
 				shutdown(sockfd, SHUT_RDWR);
@@ -143,10 +158,18 @@ int main(int argc, char *argv[])
 				return 0;
 			}
 
-			printf("Am primit de la server: %s\n", msg->content);
+			int recv_info_size = ret_code;
+			int msg_recv_offset = 0;
+			while (msg_recv_offset < recv_info_size) {
+				format *msg_recv = (format*) (buffer + msg_recv_offset);
+				printf("Am primit de la server: %s\n", msg_recv->content);
+				msg_recv_offset += msg_recv->len;
+			}
 		}
 	}
 
-	// free(msg);
+	shutdown(sockfd, SHUT_RDWR);
+	close(sockfd);
+	free(msg_to_send);
 	return 0;
 }
