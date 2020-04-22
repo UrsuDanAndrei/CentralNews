@@ -4,21 +4,22 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs) {
 	printf("din process_received_info\n");
 
+	// buffer pentru citirea mesajelor primite
 	char buffer[BUFF_SIZE];
-	memset(buffer, 0, sizeof(buffer));
+	memset(buffer, 0, BUFF_SIZE);
+
 
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(struct sockaddr_in);
-
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1 UDP s-ar putea sa nu uneasca mesajele
+	memset(&client_addr, 0, sizeof(struct sockaddr_in));
 
 	// !!! MSG_WAITALL poate trebuie altceva
+	// se salveaza in buffer informatia primita de pe socket-ul UDP
 	recvfrom(sockfd, buffer, sizeof(buffer), MSG_WAITALL,
 								(struct sockaddr*) &client_addr, &client_len);
 	
-	// the buffer will be parsed into msg
+	// informatia din buffer va fi parsata in msg
 	format *msg = (format*) malloc(sizeof(format));
-	//char msg[BUFF_SIZE];
 	memset(msg, 0, sizeof(format));
 	
 	// !!! poate are 50 bytes fix si n-are termnator de sir
@@ -42,11 +43,18 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 	msg->content[s_line_s_offset + 1] = '-';
 	msg->content[s_line_s_offset + 2] = ' ';
 
+	// se gestioneaza cazul in care topicul are exact 50 de caractere
+	char saved_char = buffer[MAX_TOPIC_LEN];
+	buffer[MAX_TOPIC_LEN] = '\0';
+
 	/* strlen returneaza dimensiunea pana la primul '\0' din buffer, adica exact
 	lungimea topicului */
+
 	// IP:PORT - topic
 	int topic_offset = s_line_s_offset + 3;
 	memcpy(msg->content + topic_offset, buffer, strlen(buffer));
+
+	buffer[MAX_TOPIC_LEN] = saved_char;
 	
 	// IP:PORT - topic - 
 	int s_line_s_offset2 = topic_offset + strlen(buffer);
@@ -59,7 +67,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 	uint8_t type;
 	memcpy(&type, buffer + TYPE_OFFSET, 1);
 
-	// !!! poate denumeste toate tipurele intr-un enum or something
+	// in functie de tipul primit parsarea se realizeaza diferentiat
 	switch (type) {
 		case INT: {
 			msg->content[type_offset] = 'I';
@@ -78,12 +86,15 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			memcpy(&no, buffer + INT_OFFSET, sizeof(uint32_t));
 			no = ntohl(no);
 
+			/* daca se este necesar se adauga semnul '-' si se deplaseaza 
+			numarul la dreapta */
 			int no_offset = s_line_s_offset3 + 3;
 			if (sign == 1) {
 				msg->content[no_offset] = '-';
 				++no_offset;
 			}
-
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111111 poate nu trebuie ambele instructiuni
+			// se plaseaza numarul in msg
 			memcpy(msg->content + no_offset, &no, sizeof(uint32_t));
 			int no_len = sprintf(msg->content + no_offset, "%d", no);
 
@@ -117,15 +128,10 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			int no_offset = s_line_s_offset3 + 3;
 			int no_len = sprintf(msg->content + no_offset, "%d", no);
 
-			// se muta ultimele 2 cifre cu o pozitie la dreapta
-			// for (int i = no_offset + no_len; i >= no_offset + no_len - 1; --i) {
-			// 	msg[i] = msg[i - 1];
-			// }
+			/* se muta ultimele 2 cifre cu o pozitie la dreapta pentru a face
+			   loc caracterului '.' */
 			memcpy(msg->content + no_offset + no_len - 1, msg->content + no_offset + no_len - 2, 2);
 
-
-			// !!! poate nu vrea sa completezi cu 0, gen 17 -> 17 nu 17 -> 17.00, ca
-			// la float de exemplu 
 			// se plaseaza caracterul '.'
 			int dot_offset = no_offset + no_len - 2;
 			msg->content[dot_offset] = '.';
@@ -148,10 +154,11 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			msg->content[s_line_s_offset3 + 1] = '-';
 			msg->content[s_line_s_offset3 + 2] = ' ';
 
-			// se plaseaza semnul '-' daca este cazul
 			uint8_t sign;
 			memcpy(&sign, buffer + SIGN_OFFSET, sizeof(uint8_t));
 
+			/* daca se este necesar se adauga semnul '-' si se deplaseaza 
+			   numarul la dreapta */
 			int no_offset = s_line_s_offset3 + 3;
 			if (sign == 1) {
 				msg->content[no_offset] = '-';
@@ -166,12 +173,12 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			uint8_t power10;
 			memcpy(&power10, buffer + POWER10_OFFSET, sizeof(uint8_t));
 
-			/* numarul de zerouri ce trebuie adaugate pentru o
+			/* se introduc numarul de zerouri necesare pentru o
 			reprezentare corecta a numarului */
 			int no_zeros = power10 - no_len + 1;
 			if (no_zeros > 0) {
-				/* se deplaseaza numarul cu nr_zeros la dreapta pentru a face loc 
-				pentru zero-urile ce urmeaza a fi adaugate */
+				/* se deplaseaza numarul cu nr_zeros la dreapta pentru a face
+				loc  pentru zero-urile ce urmeaza a fi adaugate */
 				memcpy(msg->content + no_offset + no_zeros, msg->content + no_offset, no_len);
 				no_len += no_zeros;
 				
@@ -208,8 +215,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			msg->content[s_line_s_offset3] = ' ';
 			msg->content[s_line_s_offset3 + 1] = '-';
 			msg->content[s_line_s_offset3 + 2] = ' ';
-
-			// !!! atentie la strcyp 
+ 
 			int string_offset = s_line_s_offset3 + 3;
 			strncpy(msg->content + string_offset, buffer + STRING_OFFSET, MAX_STRING_SIZE);
 
@@ -217,14 +223,14 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 		}
 	}
 
-	// !!! poate nu se temina cu '\0' daca are fix 1500 caractere, strcpy nasol atunci
 	/// !!! poate mesajele de la UDP client nu au formatul specificat, trebuie testa eventual
 
-	// 4 este pentru cei 4 bytes din primul int
+	// 4 este pentru cei 4 bytes din primul int, 1 este pentru '\0' din coada
 	msg->len = 4 + strlen(msg->content) + 1;
-	 printf("UDP Clinet spune: %s\n", msg->content);
-	// converteste din char* in std::string
-	// in buffer primul lucru se afla topicul discutiei
+	printf("UDP Clinet spune: %s\n", msg->content);
+
+	// in buffer primul lucru string este reprezentat de topicul discutiei
+	buffer[MAX_TOPIC_LEN] = '\0';
 	send_to_all_subscribers(buffer, msg, clis, topic_subs);
 }
 
@@ -232,31 +238,33 @@ void send_to_all_subscribers(const char *topic, format *msg,
 		std::vector<Client> &clis,
 		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs) {
 	std::string str_topic(topic);
-//	std::string str_msg((char*)msg);
 	printf("din send_to_all_subscribers\n");
 	int ret_code;
 
-	// daca este prima oara cand se face referire la acest topic, inseamna ca niciun
-	// client nu este abonat inca
+	/* daca este prima oara cand se face referire la acest topic, inseamna ca
+	   niciun client nu este abonat inca, deci se da drop la mesaj */
 	if (topic_subs.find(str_topic) == topic_subs.end()) {
 		printf("nou topic din send_all_subscribers\n");
-		// topic_subs[str_topic] = std::unordered_set<int>();
 		free(msg);
 		return;
 	}
 
+	// se parcurge lista de subscriberi ai topicului
 	std::unordered_set<int>& subs = topic_subs[str_topic];
 	for (auto it = subs.begin(); it != subs.end(); ++it) {
 		int id = *it;
 		Client& cli = clis[id];
-
+		
+		// daca clientul este on se trimite pur si simplu mesajul
 		if (cli.on) {
-			// poate trebuie alte falg-uri
+			// !!!poate trebuie alte falg-uri
 			printf("Trimit catre clientul: ");
 			std::cout << cli.name << std::endl;
+
 			ret_code = send(cli.sockfd, msg, msg->len, 0);
 			DIE(ret_code < 0, "send");
 		} else {
+			// altfel se adauga o copie a acestui in inbox-ul sau
 			if (cli.topic_sf[str_topic] == true) {
 				printf("Adaug in inbox pentru: ");
 				std::cout << cli.name << std::endl;
@@ -269,5 +277,6 @@ void send_to_all_subscribers(const char *topic, format *msg,
 		}
 	}
 
+	// se elibereaza memoria alocata mesajului
 	free(msg);
 }

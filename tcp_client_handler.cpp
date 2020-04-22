@@ -9,11 +9,13 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	printf("in add_tcp_client\n");
 
 	int ret_code;
-	char buffer[BUFF_SIZE];
-    memset(buffer, 0, sizeof(buffer));
 
-	// a venit o cerere de conexiune pe socketul inactiv (cel cu listen),
-	// pe care serverul o accepta
+	// buffer utilizat pentru citire
+	char buffer[BUFF_SIZE];
+    memset(buffer, 0, BUFF_SIZE);
+
+	/* a venit o cerere de conexiune pe socketul inactiv (cel cu listen),
+	pe care serverul o accepta */
 	struct sockaddr_in cli_addr;
 	socklen_t cli_len = sizeof(cli_addr);
 	int new_sockfd = accept(sockfd_tcp_listen, (struct sockaddr *) &cli_addr, &cli_len);
@@ -24,7 +26,8 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	ret_code = setsockopt(new_sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &disable, sizeof(uint32_t));
 	DIE(ret_code < 0, "setsockopt");
 
-	// se adauga noul socket intors de accept() la multimea descriptorilor de citire
+	/* se adauga noul socket intors de accept() la multimea
+	descriptorilor de citire */
 	FD_SET(new_sockfd, &read_fds);
 	fdmax = std::max(fdmax, new_sockfd);
     to_add.push_back(new_sockfd);
@@ -35,20 +38,26 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	int recv_info_size = ret_code;
 
 	format* msg = (format*) buffer;
-	// !!!!!! s-ar putea sa primeasca si o cerere de unsubscribe / subscribe in acelasi timp
 	printf("New client %s connected from %s:%d.\n",
 		msg->content, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 
 	// converteste char* in std::string
 	std::string name(msg->content);
 	if (cli2id.find(name) == cli2id.end()) {
+		/* daca clientul nu s-a mai conectat pana acum atunci i se atribuie un
+		id si va ramane inregistrat in server indiferent daca clientul este
+		on sau off */
 		printf("clientul ");
 		std::cout << name << " adaugat in if" <<std::endl;
 		cli2id[name] = max_cli_id;
+		
+		// se realizeaza corespondenta socket client - id client
 		sockfd2cli[new_sockfd] = max_cli_id;
 		clis.push_back(Client(max_cli_id, new_sockfd , true, name));
 		++max_cli_id;
 	} else {
+		/* daca clientul este deja inregistrat, acesta va incepe sa primeasca
+		mesajele din inbox */
 		int id = cli2id[name];
 		clis[id].on = true;
 		clis[id].sockfd = new_sockfd;
@@ -61,6 +70,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 			printf("trimit\n");
 			send(clis[id].sockfd, inbox_msg, inbox_msg->len, 0);
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11 fara free
+			// odata trimis, mesajul poate fi eliberat din memoria server-ului
 			free(inbox_msg);
 		//	usleep(100);
 		}

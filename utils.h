@@ -38,6 +38,8 @@
 #define BUFF_SIZE 1600
 #define MAX_CLIENTS 10
 
+#define MAX_TOPIC_LEN 50
+
 #define COMMAND_LEN 5
 
 #define INT 0
