@@ -28,8 +28,9 @@ void wrong_command() {
 /* returneaza -1 daca inputul este invalid, 0 daca s-a dat comanda exit si
 1 daca totul este ok */
 int check_correct_input_subscriber(const char *input) {
+	// se face o copie pentru a nu fi afectat sirul primit ca parametru
 	char copy_input[BUFF_SIZE];
-	memset(copy_input, 0, sizeof(copy_input));
+	memset(copy_input, 0, BUFF_SIZE);
 	memcpy(copy_input, input, strlen(input));
 
 	char *command = strtok(copy_input, " \n");
@@ -63,6 +64,7 @@ int check_correct_input_subscriber(const char *input) {
 
 int main(int argc, char *argv[])
 {
+	// verifica daca apelul este realizat cu numarul corect de argumente
 	if (argc != 4) {
 		usage(argv[0]);
 	}
@@ -70,6 +72,8 @@ int main(int argc, char *argv[])
 	int fdmax = -1;
 	int sockfd;
 	int ret_code;
+
+	// se creaze socket-ul
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	DIE(sockfd < 0, "socket");
 	fdmax = std::max(fdmax, sockfd);
@@ -79,8 +83,8 @@ int main(int argc, char *argv[])
 	ret_code = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &disable, sizeof(uint32_t));
 	DIE(ret_code < 0, "setsockopt");
 
+	// se initializeaza adresa si portul server-ului la care se va conecta
 	struct sockaddr_in serv_addr;
-
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(atoi(argv[3]));
 	ret_code = inet_aton(argv[2], &serv_addr.sin_addr);
@@ -89,7 +93,7 @@ int main(int argc, char *argv[])
 	ret_code = connect(sockfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr));
 	DIE(ret_code < 0, "connect");
 
-
+	// buffer pentru citire
 	char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
 	// format *msg = (format*) malloc(sizeof(format));
@@ -99,11 +103,14 @@ int main(int argc, char *argv[])
 	format *msg_name = (format *) malloc(sizeof(format));
 	memset(msg_name, 0, sizeof(format));
 
+	// se trimite primul mesaj, cu numele de autentificare al clinetului
     memcpy(msg_name->content, argv[1], strlen(argv[1]));
 	msg_name->len = 4 + strlen(argv[1]) + 1;
     ret_code = send(sockfd, msg_name, msg_name->len, 0);
 	DIE(ret_code < 0, "send");
 
+	/* in read_fds se vor retine toti file descriptori pentru care este de
+	asteptat sa primeasca informatii */
 	fd_set read_fds;
 	fd_set tmp_fds;
 
@@ -115,7 +122,7 @@ int main(int argc, char *argv[])
 
 	// socketul tcp
 	FD_SET(sockfd, &read_fds);
-
+	
 	format *msg_to_send = (format *) malloc(sizeof(format));
 
 	while (1) {
@@ -125,20 +132,26 @@ int main(int argc, char *argv[])
 		DIE(ret_code < 0, "select");
 
 		if (FD_ISSET(0, &tmp_fds)) {
+			// citire de la tastatura
 			memset(msg_to_send, 0, sizeof(format));
 			fgets(msg_to_send->content, BUFF_SIZE, stdin);
 
+			// se verifica daca mesajul are formatul corect
 			int ret_code = check_correct_input_subscriber(msg_to_send->content);
 			if (ret_code == -1) {
+				// daca input-ul este invalid se ignora mesajul
 				continue;
 			} else if (ret_code == 0) {
+				// daca s-a primit comanda exit se inchide conexiunea
 				break;
 			}
 
+			// se trimite request-ul catre server
 			msg_to_send->len = 4 + strlen(msg_to_send->content) + 1;
 			ret_code = send(sockfd, msg_to_send, msg_to_send->len, 0);
 			DIE(ret_code < 0, "send");
 
+			// se afiseaza mesajul de feedback
 			char *sub_unsub = strtok(msg_to_send->content, " \n");
 			char *topic = strtok(NULL, " \n");
 			if (strncmp("subscribe", sub_unsub, 9) == 0) {
@@ -147,6 +160,7 @@ int main(int argc, char *argv[])
 				printf("unsubscribed %s\n", topic);
 			}
 		} else if (FD_ISSET(sockfd, &tmp_fds)) {
+			// se parseaza mesajele primite de la server
 			std::vector<std::string> msgs;
 			ret_code = get_parsed_messages(sockfd, msgs);
 			// memset(buffer, 0, BUFF_SIZE);
@@ -160,6 +174,7 @@ int main(int argc, char *argv[])
 				return 0;
 			}
 
+			// se afiseaza pe ecran toate mesajele primite de la server
 			for (std::string& str : msgs) {
 				std::cout << "Am primit de la server: " << str << std::endl;
 			}

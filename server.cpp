@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 					process_received_info(fd, clis, topic_subs);
                 } else if (fd == sockfd_tcp_listen) {
 					add_tcp_client(fdmax, sockfd_tcp_listen, read_fds, to_add,
-										sockfd2cli, cli2id, clis, max_cli_id);
+										sockfd2cli, cli2id, clis, topic_subs, max_cli_id);
 				} else {
 					/* s-au primit date pe unul din socketii de client,
 					asa ca serverul trebuie sa le receptioneze */
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
 						memcpy(char_str, str.c_str(), str.size() + 1);
 						char_str[str.size()] = '\0';
 
-						process_tcp_client_request(fd, read_fds, char_str, to_delete,
+						process_tcp_client_request(fd, read_fds, char_str,
 												sockfd2cli, clis, topic_subs);
 						free(char_str);
 					}
