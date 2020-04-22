@@ -147,9 +147,11 @@ int main(int argc, char *argv[])
 				printf("unsubscribed %s\n", topic);
 			}
 		} else if (FD_ISSET(sockfd, &tmp_fds)) {
-			memset(buffer, 0, BUFF_SIZE);
-			ret_code = recv(sockfd, buffer, BUFF_SIZE, 0);
-			DIE(ret_code < 0, "recv");
+			std::vector<std::string> msgs;
+			ret_code = get_parsed_messages(sockfd, msgs);
+			// memset(buffer, 0, BUFF_SIZE);
+			// ret_code = recv(sockfd, buffer, BUFF_SIZE, 0);
+			// DIE(ret_code < 0, "recv");
 
 			if (ret_code == 0) {
 				printf("Serverul a inchis conexiunea\n");
@@ -158,13 +160,17 @@ int main(int argc, char *argv[])
 				return 0;
 			}
 
-			int recv_info_size = ret_code;
-			int msg_recv_offset = 0;
-			while (msg_recv_offset < recv_info_size) {
-				format *msg_recv = (format*) (buffer + msg_recv_offset);
-				printf("Am primit de la server: %s\n", msg_recv->content);
-				msg_recv_offset += msg_recv->len;
+			for (std::string& str : msgs) {
+				std::cout << "Am primit de la server: " << str << std::endl;
 			}
+
+			// int recv_info_size = ret_code;
+			// int msg_recv_offset = 0;
+			// while (msg_recv_offset < recv_info_size) {
+			// 	format *msg_recv = (format*) (buffer + msg_recv_offset);
+			// 	printf("Am primit de la server: %s\n", msg_recv->content);
+			// 	msg_recv_offset += msg_recv->len;
+			// }
 		}
 	}
 
