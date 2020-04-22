@@ -10,8 +10,8 @@ NUME = gigel
 all: server subscriber
 
 # Pentru server
-server: server.o client.o tcp_client_handler.o udp_client_handler.o
-	g++ server.o client.o tcp_client_handler.o udp_client_handler.o -Wall -Wextra -o server
+server: server.o client.o tcp_client_handler.o udp_client_handler.o utils.o
+	g++ server.o client.o tcp_client_handler.o udp_client_handler.o utils.o -Wall -Wextra -o server
 
 server.o: server.cpp
 	g++ server.cpp -Wall -Wextra -c
@@ -26,12 +26,14 @@ udp_client_handler.o: udp_client_handler.cpp
 	g++ udp_client_handler.cpp -Wall -Wextra -c
 
 # Pentru subscriber
-subscriber: subscriber.o
-	g++ subscriber.o -Wall -Wextra -o subscriber
+subscriber: subscriber.o utils.o
+	g++ subscriber.o utils.o -Wall -Wextra -o subscriber
 
 subscriber.o: subscriber.cpp
 	g++ subscriber.cpp -Wall -Wextra -c
 
+utils.o:
+	g++ utils.cpp -Wall -Wextra -c
 
 # Ruleaza serverul
 run_server:

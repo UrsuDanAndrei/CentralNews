@@ -3,6 +3,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
+#include <bits/stdc++.h>
+#include <iostream>
+#include <netinet/in.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 /*
  * Macro de verificare a erorilor
@@ -47,5 +60,7 @@ struct format {
 	int len;
 	char content[BUFF_SIZE];
 };
+
+int get_parsed_messages(int sockfd, std::vector<std::string>& msgs);
 
 #endif // __HELPERS_H__

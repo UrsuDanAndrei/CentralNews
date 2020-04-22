@@ -154,13 +154,10 @@ int main(int argc, char *argv[])
 					add_tcp_client(fdmax, sockfd_tcp_listen, read_fds, to_add,
 										sockfd2cli, cli2id, clis, max_cli_id);
 				} else {
-					memset(buffer, 0, sizeof(buffer));
-
 					// s-au primit date pe unul din socketii de client,
 					// asa ca serverul trebuie sa le receptioneze
-					ret_code = recv(fd, buffer, BUFF_SIZE, 0);
-					DIE(ret_code < 0, "recv");
-					int recv_info_size = ret_code;
+					std::vector<std::string> msgs;
+					ret_code = get_parsed_messages(fd, msgs);
 
 					int id = sockfd2cli[fd];
 					Client& cli = clis[id];
@@ -189,12 +186,14 @@ int main(int argc, char *argv[])
 						continue;
 					}
 
-					int msg_offset = 0;
-					while (msg_offset < recv_info_size) {
-						format* msg = (format *) (buffer + msg_offset);
-						process_tcp_client_request(fd, read_fds, msg->content, to_delete,
+					for (std::string& str : msgs) {
+						char* char_str = (char*) malloc(str.size() + 1);
+						memcpy(char_str, str.c_str(), str.size() + 1);
+						char_str[str.size()] = '\0';
+
+						process_tcp_client_request(fd, read_fds, char_str, to_delete,
 												sockfd2cli, clis, topic_subs);
-						msg_offset += msg->len;
+						free(char_str);
 					}
 				}
 			}
