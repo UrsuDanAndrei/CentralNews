@@ -143,12 +143,27 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 
 	// se verifica tipul mesajului primit
 	char *sub_unsub = strtok(request, " \n");
+	if (sub_unsub == NULL) {
+		printf("Mesajul nu respecta formatul dorit");
+		return;
+	}
+
 	char *topic = strtok(NULL, " \n");
+	if (topic == NULL) {
+		printf("Mesajul nu respecta formatul dorit");
+		return;
+	}
+
 	std::string str_topic(topic);
 
 	if (strncmp(sub_unsub, "subscribe", 9) == 0) {
 		// daca se primeste o cerere de subscribe se extrage flag-ul de sf
 		char *sf = strtok(NULL, " \n");
+		if (sf == NULL) {
+			printf("Mesajul nu respecta formatul dorit");
+			return;
+		}
+
 		printf ("din subscribe\n");
 
 		/* se adauga clientul la lista de abonati a topicului (daca topicul este
@@ -206,7 +221,8 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 
 		// se elimina topicul din lista topicurilor clientului
 		cli.topic_sf.erase(str_topic);
+	} else {
+		// se ignora mesajele care nu respecta formatul din if-uri
+		printf("Mesajul nu respecta formatul dorit");
 	}
-
-	// se ignora mesajele care nu respecta formatul din if-uri
 }

@@ -148,6 +148,72 @@ UDP pentru a fi multiplexate de functia select
 	afiseaza un mesaj de eroare)
 	-- daca comanda primita este "exit" atunci se inchid toate
 	conexiunile cu server-ul si se inceteaza executia programului
-- daca se primeste un mesaj de pe socket-ul TCP:
-	--
+- daca se primeste un mesaj de pe socket-ul UDP:
+	-- se apeleaza functia process_received_info
+	-- se parseaza mesajul din forma primita in forma care se doreste
+	trimisa catre client. Dupa completarea field-ului content se
+	calculeaza field-ul len si se apeleaza functia
+	send_to_all_subscribers
+	-- in aceasta functie se verifica daca exista clienti abonati la
+	topicul mesajului. (in caz negativ se ignora mesajul)
+	-- se utilizeaza structura topic_subs pentru a parcurge toti
+	clientii abonati si se trimite mesajul tuturor clientilor care
+	sunt online. Pentru clientii ofline abonati cu flag-ul sf setat
+	pe 1 se plaseaza o copie a mesajului in campul inbox.
+- daca se primeste un mesaj pe socket-ul TCP pe care se "asculta":
+	-- se apeleaza functia add_tcp_client
+	-- se accepta conexiunea si se dezactiveaza algoritmul NEAGLE
+	pentru socket-ul intors
+	-- se introduce noul socket in read_fds
+	-- se apeleaza functia get_parssed_messages pentru a se salva in
+	vectorul msgs mesajele primite de la client. Daca clientul nu
+	trimite macar un mesaj cu numele lui, atunci se inchide
+	conexiunea si se afiseaza un mesaj de eroare.
+	-- daca clientul isi trimite numele se verifica daca este 
+	un client cu totul nou sau este un client inregistrat anterior
+	care doar se reconecteaza
+	-- in primul caz ii se atribuie clinetului un id unic, se asociaza
+	socket-ului pe care s-a conectat acest id si se adauga in lista de
+	clienti
+	-- in cel de-al doilea caz se verifica daca clientul este deja
+	conectat pe un alt socket (caz in care se inchide conexiunea pe
+	socket-ul curent) sau a redevenit online
+	-- daca a redevenit online se marcheaza acest lucru, se updateaza
+	socket-ul clientului si i se trimit toate mesajele din inbox pe
+	care le-a primit cat a fost offline (se elibereaza de asemnea
+	memoria alocata pentru aceste mesaje)
+	-- daca pe langa nume, clientul a trimis si niste requst-uri,
+	atunci se parcurge restul vectorului msgs si pentru fiecare mesaj
+	se apeleaza functia process_tcp_client_request() pe care o voi
+	explica mai jos
+- daca nu s-au primit mesaje nici pe socket-ul TCP pe care se asculta,
+nici pe UDP si nici de la tastatura, inseamna ca s-au primit mesaje
+de la unul din socketii TCP pe care este conectat un client:
+	-- se apeleaza functia get_parsed_messages
+	-- daca functia intoarce valoare 0, insemna ca subscriber-ul a
+	intrerupt conexiunea si se inchide socket-ul
+	-- daca functia intoarce o valoare nenula atunci se parcurge 
+	vectorul de mesaje si pentru fiecare mesaj se apeleaza functia
+	process_tcp_client_request()
+	-- in process_tcp_client_request se verifica ca formatul mesajului
+	sa fie corect, altfel se ignora
+	-- daca s-a primit o cerere de subscribe atunci se introduce
+	clientul in lista de abonati la topicul respectiv (daca se
+	gaseste deja acolo atunci doar se updateaza flag-ul de sf cu care
+	s-a abonat)
+	-- daca s-a primit o cerere de unsubscribe se elimina clientul din
+	lista de subscriberi a topicului (daca topicul este inexistent
+	sau clientul nu este abonat la el se ignora cererea si se afiseaza
+	un mesaj de eroare)
 
+=== alte mentiui =====================================================
+
+Am comentat toate mesajele de eroare care nu erau conforme cu cerinte,
+pentru a le vizualiza se pot decomenta toate std::cout-urile.
+
+Am considerat ca un topic "apare" in program daca cel putin un client
+este abonat la el (daca se primea o lista de topicuri valide inainte
+se putea evita scenariul in care clientul "umple" server-ul cu
+topicuri pentru care nu se vor primi niciodata mesaje)
+
+======================================================================
