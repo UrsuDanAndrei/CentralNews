@@ -19,10 +19,10 @@ void usage(char *file)
 }
 
 void wrong_command() {
-	printf("\nComanda introdusa este invalida\n");
-	printf("Comanda trebuie sa aiba una din structurile:\n");
-	printf("subscribe topic_name 0/1\n");
-	printf("unsubscribe topic_name\n\n");
+	std::cout << "\nComanda introdusa este invalida\n";
+	std::cout << "Comanda trebuie sa aiba una din structurile:\n";
+	std::cout << "subscribe topic_name 0/1\n";
+	std::cout << "unsubscribe topic_name\n\n";
 }
 
 /* returneaza -1 daca inputul este invalid, 0 daca s-a dat comanda exit si
@@ -135,7 +135,8 @@ int main(int argc, char *argv[])
 		if (FD_ISSET(0, &tmp_fds)) {
 			// citire de la tastatura
 			memset(msg_to_send, 0, sizeof(format));
-			fgets(msg_to_send->content, BUFF_SIZE, stdin);
+			char* ret_ptr = fgets(msg_to_send->content, BUFF_SIZE, stdin);
+			DIE(ret_ptr == NULL, "fgets");
 
 			// se verifica daca mesajul are formatul corect
 			int ret_code = check_correct_input_subscriber(msg_to_send->content);

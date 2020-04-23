@@ -36,7 +36,7 @@
 
 /* Dimensiunea maxima a calupului de date */
 #define BUFF_SIZE 1600
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 1000
 
 #define MAX_TOPIC_LEN 50
 
