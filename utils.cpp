@@ -7,8 +7,8 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
     char buffer[BUFF_SIZE + 5];
     memset(buffer, 0, sizeof(buffer));
 
-    // s-au primit date pe unul din socketii de client,
-    // asa ca serverul trebuie sa le receptioneze
+    /* s-au primit date pe unul din socketii de client,
+    asa ca serverul trebuie sa le receptioneze */
     ret_code = recv(sockfd, buffer, BUFF_SIZE, 0);
     DIE(ret_code < 0, "recv");
     int recv_info_size = ret_code;
@@ -21,18 +21,23 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
     int msg_offset = 0;
     format* msg;
 
+    // se separa mesajele unite de TCP in buffer
     while (msg_offset < recv_info_size) {
         msg = (format *) (buffer + msg_offset);
         int len = msg->len;
         int read_len = strlen(msg->content);
         std::string str_msg(msg->content);
 
+        /* daca mesajul a fost continut in intregime in buffer se continua cu
+        identificarea si separarea urmatorului mesaj */
         if (read_len == len - 5) {
             msgs.push_back(str_msg);
             msg_offset += msg->len;
             continue;
         }
 
+        /* daca mesajul nu a fost continut in intregime in buffer se realizeaza
+        citiri de pe socket pana cand mesajul este integru */
         while (read_len != len - 5) {
             memset(buffer, 0, sizeof(buffer));
             ret_code = recv(sockfd, buffer, BUFF_SIZE, 0);

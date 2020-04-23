@@ -22,7 +22,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	int new_sockfd = accept(sockfd_tcp_listen, (struct sockaddr *) &cli_addr, &cli_len);
 	DIE(new_sockfd < 0, "accept");
 
-	// disable NIGLE Algorithm on this socket
+	// disable NEAGLE Algorithm on this socket
 	uint32_t disable = 1;
 	ret_code = setsockopt(new_sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &disable, sizeof(uint32_t));
 	DIE(ret_code < 0, "setsockopt");
@@ -39,12 +39,14 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	/* daca clientul nu isi trimite macar numele atunci socket-ul a aparut o
 	eroare si se inchide socket-ul */
 	if (ret_code == 0) {
+		printf("Clientul nu a specificat numele de autentificare\n");
 		FD_CLR(new_sockfd, &read_fds);
 
 		shutdown(new_sockfd, SHUT_RDWR);
 		close(new_sockfd);
 
 		to_add.pop_back();
+		return;
 	}
 
     // se proceseaza primul mesaj cu numele de autentificare (client_id)
@@ -55,8 +57,6 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 	// int recv_info_size = ret_code;
 
 	//format* msg = (format*) buffer;
-	printf("New client %s connected from %s:%d.\n",
-		name.c_str(), inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 
 	// !!! converteste char* in std::string
 	// std::string name(msg->content);
@@ -64,6 +64,8 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 		/* daca clientul nu s-a mai conectat pana acum atunci i se atribuie un
 		id si va ramane inregistrat in server indiferent daca clientul este
 		on sau off */
+		printf("New client %s connected from %s:%d.\n",
+			name.c_str(), inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 		printf("clientul ");
 		std::cout << name << " adaugat in if" <<std::endl;
 		cli2id[name] = max_cli_id;
@@ -73,9 +75,25 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 		clis.push_back(Client(max_cli_id, new_sockfd , true, name));
 		++max_cli_id;
 	} else {
+		/* daca clientul este deja logat se inchide socket-ul corespunzator
+		celei de a 2 incercari de logare */
+		int id = cli2id[name];
+		if (clis[id].on) {
+			printf("Clientul este deja logat\n");
+			FD_CLR(new_sockfd, &read_fds);
+
+			shutdown(new_sockfd, SHUT_RDWR);
+			close(new_sockfd);
+
+			to_add.pop_back();
+			return;
+		}
+
+		printf("New client %s connected from %s:%d.\n",
+			name.c_str(), inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+
 		/* daca clientul este deja inregistrat, acesta va incepe sa primeasca
 		mesajele din inbox */
-		int id = cli2id[name];
 		clis[id].on = true;
 		clis[id].sockfd = new_sockfd;
 		sockfd2cli[new_sockfd] = id;
@@ -149,8 +167,8 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 
 			/* daca clientul este deja subscribed la acest topic, atunci
 			aici se poate trimite un mesaj sa il informeze de acest lucru,
-			sau pur si simplu i se permite clientului sa se aboneze cu un
-			alt sf flag */
+			eu am ales pur si simplu sa ii permite clientului sa se aboneze
+			cu un alt sf flag */
 		}
 
 		/* se introduce topicul in lista de topicuri a clientului si se 
@@ -179,11 +197,11 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 		este abonat se ignora pur si simplu mesajul */
 		std::unordered_set<int> &subs = topic_subs[str_topic];
 		if (subs.find(id) == subs.end()) {
-			printf("nu exista clientul %d in topic_subs\n", id);
+			printf("Clientul nu este inregistrat la acest topic\n", id);
 			return;
 		}
 
-		// se elimina clinetul din lista subscriberilor pentru topicul primit
+		// se elimina clientul din lista subscriberilor pentru topicul primit
 		subs.erase(id);
 
 		// se elimina topicul din lista topicurilor clientului

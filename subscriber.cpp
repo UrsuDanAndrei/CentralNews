@@ -14,7 +14,7 @@
 
 void usage(char *file)
 {
-	fprintf(stderr, "Usage: %s id_client server_address server_port\n", file);
+	fprintf(stderr, "Utilizare: %s id_client server_address server_port\n", file);
 	exit(0);
 }
 
@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
 	// verifica daca apelul este realizat cu numarul corect de argumente
 	if (argc != 4) {
 		usage(argv[0]);
+		return 0;
 	}
 
 	int fdmax = -1;
@@ -78,7 +79,7 @@ int main(int argc, char *argv[])
 	DIE(sockfd < 0, "socket");
 	fdmax = std::max(fdmax, sockfd);
 
-	// disable NIGLE Algorithm on this socket
+	// disable NEAGLE Algorithm on this socket
 	uint32_t disable = 1;
 	ret_code = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &disable, sizeof(uint32_t));
 	DIE(ret_code < 0, "setsockopt");

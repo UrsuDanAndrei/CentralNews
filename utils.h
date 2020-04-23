@@ -58,11 +58,15 @@
 #define TYPE_OFFSET 50
 #define SIGN_OFFSET 51
 
+/* mesajele vor fi structurate in functie de structura de mai jos */
 struct format {
 	int len;
 	char content[BUFF_SIZE];
 };
 
+/* primeste un socket si returneaza prin parametrul msg toate mesajele primite
+pe acel socket la un anumit moment de timp (desparte mesajele unite de TCP si
+uneste mesajele despartite de TCP) */
 int get_parsed_messages(int sockfd, std::vector<std::string>& msgs);
 
 #endif // __HELPERS_H__
