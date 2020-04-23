@@ -20,7 +20,7 @@
 
 /* primeste un request de tipul subscribe/unsubscribe si updateaza structurile
 de date primite ca parametru pentru a corespunde cu rezultatul request-ului */
-void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
+void process_tcp_client_request(int sockfd, char *request,
 		std::unordered_map<int, int> &sockfd2cli,
 		std::vector<Client> &clis,
 		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs);

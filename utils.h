@@ -17,13 +17,6 @@
 #include <unordered_set>
 #include <vector>
 
-/*
- * Macro de verificare a erorilor
- * Exemplu:
- * 		int fd = open (file_name , O_RDONLY);
- * 		DIE( fd == -1, "open failed");
- */
-
 #define DIE(assertion, call_description)				\
 	do {								\
 		if (assertion) {					\
@@ -34,7 +27,6 @@
 		}							\
 	} while(0)
 
-/* Dimensiunea maxima a calupului de date */
 #define BUFF_SIZE 1600
 #define MAX_CLIENTS 1000
 
@@ -60,9 +52,9 @@
 
 /* mesajele vor fi structurate in functie de structura de mai jos */
 struct format {
-	int len;
+	uint16_t len;
 	char content[BUFF_SIZE];
-};
+} __attribute__((packed));
 
 /* primeste un socket si returneaza prin parametrul msg toate mesajele primite
 pe acel socket la un anumit moment de timp (desparte mesajele unite de TCP si

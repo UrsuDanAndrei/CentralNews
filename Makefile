@@ -32,7 +32,7 @@ subscriber: subscriber.o utils.o
 subscriber.o: subscriber.cpp
 	g++ subscriber.cpp -Wall -Wextra -c
 
-utils.o:
+utils.o: utils.cpp
 	g++ utils.cpp -Wall -Wextra -c
 
 # Ruleaza serverul

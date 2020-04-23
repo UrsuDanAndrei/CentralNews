@@ -1,21 +1,4 @@
-#include "client.h"
-#include "tcp_client_handler.h"
-#include "udp_client_handler.h"
-#include "utils.h"
-
-#include <arpa/inet.h>
-#include <bits/stdc++.h>
-#include <iostream>
-#include <netinet/in.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#include "server.h"
 
 /* returneaza 1 daca executia poate continua dupa comanda primita de la
 tastatura, 0 altfel */
@@ -38,20 +21,15 @@ int command_from_stdin(std::unordered_set<int> &all_sockets) {
 		return 0;
 	} else {
 		// exit este singura comanda valida specificata in enunt
-		printf("\nComanda introdusa este invalida!\n");
-		printf("Lista de comenzi valide:\n");
-		printf("exit\n\n");
+		std::cout << "\nComanda introdusa este invalida!\n";
+		std::cout << "Lista de comenzi valide:\n";
+		std::cout << "exit\n\n";
 
 		return 1;
 	}
 }
 
 // !!! intreaba de problema cu exit, dc nu se inchide portul cand dau exit si se inchide cand dau ctrl^C
-// !!! sa se poata adauga topics si in tcp subscribe on topic
-// !!! poate denumeste toate tipurele intr-un enum or something
-
-
-// !!! m-am gandit sa atribui fiecarui client
 
 void usage(char *file)
 {
@@ -131,9 +109,6 @@ int main(int argc, char *argv[])
 	char buffer[BUFF_SIZE];
 	memset(buffer, 0, BUFF_SIZE);
 
-	// !!! unorderde map pentru clineti pt a permite o usoaraa ditribuire de socketi,
-	// !!! si eficienta in memorie
-
 	int max_cli_id = 0;
 
 	// map de la numele clientului la id-ul acestuia
@@ -156,12 +131,12 @@ int main(int argc, char *argv[])
 		DIE(ret_code < 0, "select");
 
 		/* pentru adaugari si stergeri "safe" (nu in timpul parcurgerii) in
-		   set-ul all_sockets */
+		set-ul all_sockets */
 		std::vector<int> to_add;
 		std::vector<int> to_delete;
 
 		/* pentru fiecare socket din set se verifica daca se pot face operatii
-		   asupra acestuia */
+		asupra acestuia */
 		for (auto it = all_sockets.begin(); it != all_sockets.end(); ++it) {
 			int fd = *it;
 			if (FD_ISSET(fd, &tmp_fds)) {
@@ -216,12 +191,12 @@ int main(int argc, char *argv[])
 					/* pentru fiecare mesaj de la client (parsat cu ajutorul
 					get_parsed_messages) se proceseaza request-ul */
 					for (std::string& str : msgs) {
-						// conversie din std::string in char*
+						// conversie din std::string in char *
 						char* char_str = (char*) malloc(str.size() + 1);
 						memcpy(char_str, str.c_str(), str.size() + 1);
 						char_str[str.size()] = '\0';
 
-						process_tcp_client_request(fd, read_fds, char_str,
+						process_tcp_client_request(fd, char_str,
 												sockfd2cli, clis, topic_subs);
 						free(char_str);
 					}

@@ -1,16 +1,4 @@
-#include <bits/stdc++.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/tcp.h>
-
-#include "utils.h"
+#include "subscriber.h"
 
 void usage(char *file)
 {
@@ -97,16 +85,13 @@ int main(int argc, char *argv[])
 	// buffer pentru citire
 	char buffer[BUFF_SIZE];
 	memset(buffer, 0, sizeof(buffer));
-	// format *msg = (format*) malloc(sizeof(format));
-	// memset(msg, 0, sizeof(format));
 
-	// trimite datele in formatul bun!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	format *msg_name = (format *) malloc(sizeof(format));
 	memset(msg_name, 0, sizeof(format));
 
 	// se trimite primul mesaj, cu numele de autentificare al clinetului
     memcpy(msg_name->content, argv[1], strlen(argv[1]));
-	msg_name->len = 4 + strlen(argv[1]) + 1;
+	msg_name->len = 2 + strlen(argv[1]) + 1;
     ret_code = send(sockfd, msg_name, msg_name->len, 0);
 	DIE(ret_code < 0, "send");
 
@@ -149,7 +134,7 @@ int main(int argc, char *argv[])
 			}
 
 			// se trimite request-ul catre server
-			msg_to_send->len = 4 + strlen(msg_to_send->content) + 1;
+			msg_to_send->len = 2 + strlen(msg_to_send->content) + 1;
 			ret_code = send(sockfd, msg_to_send, msg_to_send->len, 0);
 			DIE(ret_code < 0, "send");
 
@@ -165,12 +150,9 @@ int main(int argc, char *argv[])
 			// se parseaza mesajele primite de la server
 			std::vector<std::string> msgs;
 			ret_code = get_parsed_messages(sockfd, msgs);
-			// memset(buffer, 0, BUFF_SIZE);
-			// ret_code = recv(sockfd, buffer, BUFF_SIZE, 0);
-			// DIE(ret_code < 0, "recv");
 
 			if (ret_code == 0) {
-				printf("Serverul a inchis conexiunea\n");
+				std::cout << "Serverul a inchis conexiunea\n";
 				shutdown(sockfd, SHUT_RDWR);
 				close(sockfd);
 				return 0;
@@ -180,14 +162,6 @@ int main(int argc, char *argv[])
 			for (std::string& str : msgs) {
 				std::cout << "Am primit de la server: " << str << std::endl;
 			}
-
-			// int recv_info_size = ret_code;
-			// int msg_recv_offset = 0;
-			// while (msg_recv_offset < recv_info_size) {
-			// 	format *msg_recv = (format*) (buffer + msg_recv_offset);
-			// 	printf("Am primit de la server: %s\n", msg_recv->content);
-			// 	msg_recv_offset += msg_recv->len;
-			// }
 		}
 	}
 

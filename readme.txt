@@ -4,7 +4,7 @@ Grupa: 324CA
 === struct format ====================================================
 
 struct format {
-	int len;
+	uint16_t len;
 	char content[BUFF_SIZE];
 };
 
@@ -13,7 +13,7 @@ trimise/primite de server/subscriber in cadrul comunicatiilor TCP. Pe
 langa campul content, care contine informatia utila, am adaugat si
 campul len in care se va stoca lungimea totala a mesajului ce va
 fi trimis pe canalul de comunicatie:
-(4 (numarul de bytes necesari pentru campul len) + dimensiunea
+(2 (numarul de bytes necesari pentru campul len) + dimensiunea
 informatiei utile ce trebuie trimise + 1 (caracterul '\0' cu care
 am ales sa marchez finalul mesajului)).
 
@@ -43,6 +43,9 @@ verifica daca dimensiunea mesajului specificata in campul len
 corespunde cu dimensiunea campului contents. Daca nu corespunde atunci
 se realizeaza citiri in buffer cu ajutorul functie recv pentru
 obtinerea restului mesajului.
+
+De asemenea, am acoperit si cazul particular in care TCP realizeaza
+separarea unui mesaj fix intre cei 2 octeti din campul len.
 
 (M-am gandit initial la adaugarea unui # la inceputul si finalul
 fiecarui mesaj, dar acesta metoda, chiar daca ar fi fost mult mai

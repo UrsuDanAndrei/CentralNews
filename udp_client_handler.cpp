@@ -95,7 +95,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			}
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111111 poate nu trebuie ambele instructiuni
 			// se plaseaza numarul in msg
-			memcpy(msg->content + no_offset, &no, sizeof(uint32_t));
+			// memcpy(msg->content + no_offset, &no, sizeof(uint32_t));
 			int no_len = sprintf(msg->content + no_offset, "%d", no);
 
 			int final_len = no_offset + no_len;
@@ -129,7 +129,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			int no_len = sprintf(msg->content + no_offset, "%d", no);
 
 			/* se muta ultimele 2 cifre cu o pozitie la dreapta pentru a face
-			   loc caracterului '.' */
+			loc caracterului '.' */
 			memcpy(msg->content + no_offset + no_len - 1, msg->content + no_offset + no_len - 2, 2);
 
 			// se plaseaza caracterul '.'
@@ -158,7 +158,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			memcpy(&sign, buffer + SIGN_OFFSET, sizeof(uint8_t));
 
 			/* daca se este necesar se adauga semnul '-' si se deplaseaza 
-			   numarul la dreapta */
+			numarul la dreapta */
 			int no_offset = s_line_s_offset3 + 3;
 			if (sign == 1) {
 				msg->content[no_offset] = '-';
@@ -225,8 +225,8 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 
 	/// !!! poate mesajele de la UDP client nu au formatul specificat, trebuie testa eventual
 
-	// 4 este pentru cei 4 bytes din primul int, 1 este pentru '\0' din coada
-	msg->len = 4 + strlen(msg->content) + 1;
+	// 2 este pentru cei 2 bytes din primul int, 1 este pentru '\0' din coada
+	msg->len = 2 + strlen(msg->content) + 1;
 	printf("UDP Clinet spune: %s\n", msg->content);
 
 	// in buffer primul lucru string este reprezentat de topicul discutiei
@@ -242,7 +242,7 @@ void send_to_all_subscribers(const char *topic, format *msg,
 	int ret_code;
 
 	/* daca este prima oara cand se face referire la acest topic, inseamna ca
-	   niciun client nu este abonat inca, deci se da drop la mesaj */
+	niciun client nu este abonat inca, deci se da drop la mesaj */
 	if (topic_subs.find(str_topic) == topic_subs.end()) {
 		printf("nou topic din send_all_subscribers\n");
 		free(msg);
@@ -272,7 +272,6 @@ void send_to_all_subscribers(const char *topic, format *msg,
 				format* copy_msg = (format *) malloc(sizeof(format));
 				memcpy(copy_msg, msg, sizeof(format));
 				cli.inbox.push_back(copy_msg);
-				// !!!! se face o copie acici, poate ar fi util ca format sa fie o clasa cu copy constructor and all
 			}
 		}
 	}

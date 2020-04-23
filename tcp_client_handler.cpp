@@ -11,10 +11,6 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 
 	int ret_code;
 
-	// buffer utilizat pentru citire
-	// char buffer[BUFF_SIZE];
-    // memset(buffer, 0, BUFF_SIZE);
-
 	/* a venit o cerere de conexiune pe socketul inactiv (cel cu listen),
 	pe care serverul o accepta */
 	struct sockaddr_in cli_addr;
@@ -51,15 +47,6 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 
     // se proceseaza primul mesaj cu numele de autentificare (client_id)
 	std::string name = msgs[0];
-
-	// ret_code = recv(new_sockfd, buffer, BUFF_SIZE, 0);
-	// DIE(ret_code < 0, "recv");
-	// int recv_info_size = ret_code;
-
-	//format* msg = (format*) buffer;
-
-	// !!! converteste char* in std::string
-	// std::string name(msg->content);
 	if (cli2id.find(name) == cli2id.end()) {
 		/* daca clientul nu s-a mai conectat pana acum atunci i se atribuie un
 		id si va ramane inregistrat in server indiferent daca clientul este
@@ -104,30 +91,27 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 		for (auto& inbox_msg : inbox) {
 			printf("trimit\n");
 			send(clis[id].sockfd, inbox_msg, inbox_msg->len, 0);
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11 fara free
-			// odata trimis, mesajul poate fi eliberat din memoria server-ului
 			free(inbox_msg);
-		//	usleep(100);
 		}
 
 		inbox.clear();
 	}
 
 	// poate pe langa nume, clientul a trimis unul sau mai multe request-uri
-	for (int i = 1; i < msgs.size(); ++i) {
+	for (int i = 1; i < (int) msgs.size(); ++i) {
 		// conversie din std::string in char*
 		std::string& str = msgs[i];
 		char* char_str = (char*) malloc(str.size() + 1);
 		memcpy(char_str, str.c_str(), str.size() + 1);
 		char_str[str.size()] = '\0';
 
-		process_tcp_client_request(new_sockfd, read_fds, char_str,
+		process_tcp_client_request(new_sockfd, char_str,
 								sockfd2cli, clis, topic_subs);
 		free(char_str);
 	}
 }
 
-void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
+void process_tcp_client_request(int sockfd, char *request,
 		std::unordered_map<int, int> &sockfd2cli,
 		std::vector<Client> &clis,
 		std::unordered_map<std::string, std::unordered_set<int>> &topic_subs) {
@@ -135,22 +119,18 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 	int id = sockfd2cli[sockfd];
 	Client& cli = clis[id];
 
-//	std::cout << "Client name is: " << cli.name << " and id is: " << id << std::endl;
-		printf ("S-a primit de la clientul de pe socketul %d mesajul: %s\n", sockfd, request);
-
-	// !!! strncmp, poate introduci mesaje de verificare pentru
-	// !!! a fi sigur ca primesti un input bun de la client, ai avut probleme aici
+	printf ("S-a primit de la clientul de pe socketul %d mesajul: %s\n", sockfd, request);
 
 	// se verifica tipul mesajului primit
 	char *sub_unsub = strtok(request, " \n");
 	if (sub_unsub == NULL) {
-		printf("Mesajul nu respecta formatul dorit");
+		std::cout << "Mesajul nu respecta formatul dorit\n";
 		return;
 	}
 
 	char *topic = strtok(NULL, " \n");
 	if (topic == NULL) {
-		printf("Mesajul nu respecta formatul dorit");
+		std::cout << "Mesajul nu respecta formatul dorit\n";
 		return;
 	}
 
@@ -160,7 +140,7 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 		// daca se primeste o cerere de subscribe se extrage flag-ul de sf
 		char *sf = strtok(NULL, " \n");
 		if (sf == NULL) {
-			printf("Mesajul nu respecta formatul dorit");
+			std::cout << "Mesajul nu respecta formatul dorit\n";
 			return;
 		}
 
@@ -193,18 +173,18 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 			cli.topic_sf[str_topic] = false;
 		} else if (sf[0] == '1') {
 			cli.topic_sf[str_topic] = true;
+		} else {
+			// std::cout << "Mesajul nu respecta formatul dorit\n";
 		}
 	} else if (strncmp(sub_unsub, "unsubscribe", 11) == 0) {
 		printf("din unsubscribe, topic: ");
 		std::cout << str_topic;
 		std::cout << "lipita" << std::endl;
-		// !!! poate testezi cazul cu nu este subscribed
-		// !!! poate testezi cazul in care nu exista topic-ul ala
 
 		/* daca clinet-ul vrea sa isi dea unsubscribe la un topic inexistent
 		se ignora pur si simplu mesajul */
 		if (topic_subs.find(str_topic) == topic_subs.end()) {
-			printf("Nu exista acest topic\n");
+			std::cout << "Nu exista acest topic\n";
 			return;
 		}
 
@@ -212,7 +192,7 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 		este abonat se ignora pur si simplu mesajul */
 		std::unordered_set<int> &subs = topic_subs[str_topic];
 		if (subs.find(id) == subs.end()) {
-			printf("Clientul nu este inregistrat la acest topic\n", id);
+			std::cout << "Clientul nu este inregistrat la acest topic\n";
 			return;
 		}
 
@@ -223,6 +203,6 @@ void process_tcp_client_request(int sockfd, fd_set& read_fds, char *request,
 		cli.topic_sf.erase(str_topic);
 	} else {
 		// se ignora mesajele care nu respecta formatul din if-uri
-		printf("Mesajul nu respecta formatul dorit");
+		std::cout << "Mesajul nu respecta formatul dorit\n";
 	}
 }
