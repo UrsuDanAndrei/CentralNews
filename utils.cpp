@@ -39,7 +39,7 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
             recv_info_size = ret_code + 1;
 
             // se plaseaza al doilea byte
-            memcpy((&len + 1), (buffer + 1), 1);
+            memcpy(((&len) + 1), (buffer + 1), 1);
 
             // se reseteaza offset-ul si pointer-ul catre buffer
             msg = (format *) buffer;
@@ -72,7 +72,7 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
             read_len += strlen(buffer);
 
             // se seteaza offset-ul in noul buffer citit
-            msg_offset = strlen(buffer) + 2;
+            msg_offset = strlen(buffer) + 1;
         }
 
         msgs.push_back(str_msg);
