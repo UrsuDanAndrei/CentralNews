@@ -217,6 +217,18 @@ pentru a le vizualiza se pot decomenta toate std::cout-urile.
 Am considerat ca un topic "apare" in program daca cel putin un client
 este abonat la el (daca se primea o lista de topicuri valide inainte
 se putea evita scenariul in care clientul "umple" server-ul cu
-topicuri pentru care nu se vor primi niciodata mesaje)
+topicuri pentru care nu se vor primi niciodata mesaje).
+
+Am utilizat portul 10000 si adresa ip de loopback: 127.0.0.1 (Daca se
+doreste alta adresa trebuie completat la linia 56 campul s_addr cu
+acea adresa).
+
+Nu am reusit sa indetific cu valgrind vreo eroare de memorie sau vreun
+leak, deci tind sa cred ca alocarea si eliberarea de memorie au fost
+facute corect.
+
+Exemplu de rulare:
+./server 10000
+./subscriber gigel 127.0.0.1 10000
 
 ======================================================================

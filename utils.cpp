@@ -1,7 +1,6 @@
 #include "utils.h"
 
 int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
-    printf("in get_parsed_messages:\n");
     int ret_code;
     
     char buffer[BUFF_SIZE + 5];
@@ -31,16 +30,16 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
         2 octeti care definesc dimensiunea mesajului urmator */
         if (msg_offset == recv_info_size - 1) {
             // se plaseaza primul byte
-            memcpy(&len, buffer + msg_offset, 1);
+            memcpy(&len, (buffer + msg_offset), 1);
 
             // se citeste de pe socket
             memset(buffer, 0, sizeof(buffer));
-            ret_code = recv(sockfd, buffer + 1, BUFF_SIZE - 1, 0);
+            ret_code = recv(sockfd, (buffer + 1), BUFF_SIZE - 1, 0);
             DIE(ret_code < 0, "recv");
             recv_info_size = ret_code + 1;
 
             // se plaseaza al doilea byte
-            memcpy((&len + 1), buffer + 1, 1);
+            memcpy((&len + 1), (buffer + 1), 1);
 
             // se reseteaza offset-ul si pointer-ul catre buffer
             msg = (format *) buffer;

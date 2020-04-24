@@ -20,8 +20,11 @@
 #include <unordered_set>
 #include <vector>
 
+/* citeste de la tastatura si executa comanda daca este valida, altfel o ignora,
+returneaza 0, daca s-a primit comanda exit */
 int command_from_stdin(std::unordered_set<int> &all_sockets);
 
+/* se apeleaza in cazul trimiterii unui numar incorect de parametri */
 void usage(char *file);
 
 #endif // __SERVER_H__

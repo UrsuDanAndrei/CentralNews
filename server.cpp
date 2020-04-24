@@ -6,9 +6,8 @@ int command_from_stdin(std::unordered_set<int> &all_sockets) {
 	char buffer[COMMAND_LEN];
 	memset(buffer, 0, COMMAND_LEN);
 
-	if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
-		DIE(1, "fgets");
-	}
+	char* ret_ptr = fgets(buffer, sizeof(buffer), stdin);
+	DIE(ret_ptr == NULL, "fgets");
 
 	if (strncmp(buffer, "exit", 4) == 0) {
 		// inchide toate conexiunile inainte de a termina executia programului
@@ -21,24 +20,19 @@ int command_from_stdin(std::unordered_set<int> &all_sockets) {
 		return 0;
 	} else {
 		// exit este singura comanda valida specificata in enunt
-		std::cout << "\nComanda introdusa este invalida!\n";
-		std::cout << "Lista de comenzi valide:\n";
-		std::cout << "exit\n\n";
+		// std::cout << "\nComanda introdusa este invalida!\n";
+		// std::cout << "Lista de comenzi valide:\n";
+		// std::cout << "exit\n\n";
 
 		return 1;
 	}
 }
 
-// !!! intreaba de problema cu exit, dc nu se inchide portul cand dau exit si se inchide cand dau ctrl^C
-
 void usage(char *file)
 {
-	fprintf(stderr, "Utilizare: %s server_port\n", file);
+	// fprintf(stderr, "Utilizare: %s server_port\n", file);
 	exit(0);
 }
-
-// !!! exit-ul nu merge dupa ce inchid clientii!!!! poate shutdown e o problema
-// !!! poate nu inchid toti clientii
 
 int main(int argc, char *argv[])
 {
@@ -59,19 +53,21 @@ int main(int argc, char *argv[])
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(port_no);
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
+	serv_addr.sin_addr.s_addr = INADDR_ANY; // inet_addr("alta adresa")
 
     /* se creaza socket-ul TCP pe care se va asculta pentru eventuale conexiuni
 	si se leaga la portul stabilit anterior */
 	int sockfd_tcp_listen = socket(AF_INET, SOCK_STREAM, 0);
 	DIE(sockfd_tcp_listen < 0, "socket");
-	ret_code = bind(sockfd_tcp_listen, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+	ret_code = bind(sockfd_tcp_listen, (struct sockaddr *) &serv_addr,
+													sizeof(struct sockaddr));
 	DIE(ret_code < 0, "bind");
 
     /* se creaza socket-ul UDP si se leaga la portul stabilit anterior */
     int sockfd_udp = socket(AF_INET, SOCK_DGRAM, 0);
 	DIE(sockfd_udp < 0, "socket");
-    ret_code = bind(sockfd_udp, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr));
+    ret_code = bind(sockfd_udp, (struct sockaddr *) &serv_addr,
+													sizeof(struct sockaddr));
 	DIE(ret_code < 0, "bind");
 
 	// se pregateste server-ul pentru primirea conexiunilor TCP
@@ -154,7 +150,7 @@ int main(int argc, char *argv[])
 					process_received_info(fd, clis, topic_subs);
                 } else if (fd == sockfd_tcp_listen) {
 					add_tcp_client(fdmax, sockfd_tcp_listen, read_fds, to_add,
-										sockfd2cli, cli2id, clis, topic_subs, max_cli_id);
+							sockfd2cli, cli2id, clis, topic_subs, max_cli_id);
 				} else {
 					/* s-au primit date pe unul din socketii de client,
 					asa ca serverul trebuie sa le receptioneze */
@@ -164,12 +160,10 @@ int main(int argc, char *argv[])
 					int id = sockfd2cli[fd];
 					Client& cli = clis[id];
 
-					std::cout << "Client name is: " << cli.name << " and id is: " << id << std::endl;
-
 					if (ret_code == 0) {
 						// conexiunea s-a inchis
 						std::cout << "Client " << cli.name
-											<< " disconected" << std::endl;
+											   << " disconected." << std::endl;
 
 						/* se scoate din multimea de citire socketul inchis, 
 						se elimina clientul din read_fds si se va sterge din
@@ -193,6 +187,8 @@ int main(int argc, char *argv[])
 					for (std::string& str : msgs) {
 						// conversie din std::string in char *
 						char* char_str = (char*) malloc(str.size() + 1);
+						DIE(char_str == NULL, "malloc");
+						
 						memcpy(char_str, str.c_str(), str.size() + 1);
 						char_str[str.size()] = '\0';
 

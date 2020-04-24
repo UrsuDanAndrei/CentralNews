@@ -2,19 +2,17 @@
 
 void usage(char *file)
 {
-	fprintf(stderr, "Utilizare: %s id_client server_address server_port\n", file);
+	// fprintf(stderr, "Utilizare: %s id_client server_address server_port\n", file);
 	exit(0);
 }
 
 void wrong_command() {
-	std::cout << "\nComanda introdusa este invalida\n";
-	std::cout << "Comanda trebuie sa aiba una din structurile:\n";
-	std::cout << "subscribe topic_name 0/1\n";
-	std::cout << "unsubscribe topic_name\n\n";
+	// std::cout << "\nComanda introdusa este invalida\n";
+	// std::cout << "Comanda trebuie sa aiba una din structurile:\n";
+	// std::cout << "subscribe topic_name 0/1\n";
+	// std::cout << "unsubscribe topic_name\n\n";
 }
 
-/* returneaza -1 daca inputul este invalid, 0 daca s-a dat comanda exit si
-1 daca totul este ok */
 int check_correct_input_subscriber(const char *input) {
 	// se face o copie pentru a nu fi afectat sirul primit ca parametru
 	char copy_input[BUFF_SIZE];
@@ -32,7 +30,7 @@ int check_correct_input_subscriber(const char *input) {
 		}
 
 		char *sf = strtok(NULL, " \n");
-		if (sf == NULL || (sf[0] != '1' && sf[0] != '0')) {
+		if (sf == NULL || (sf[0] != '1' && sf[0] != '0') || strlen(sf) != 1) {
 			wrong_command();
 			return -1;
 		}
@@ -87,6 +85,7 @@ int main(int argc, char *argv[])
 	memset(buffer, 0, sizeof(buffer));
 
 	format *msg_name = (format *) malloc(sizeof(format));
+	DIE(msg_name == NULL, "malloc");
 	memset(msg_name, 0, sizeof(format));
 
 	// se trimite primul mesaj, cu numele de autentificare al clinetului
@@ -94,6 +93,7 @@ int main(int argc, char *argv[])
 	msg_name->len = 2 + strlen(argv[1]) + 1;
     ret_code = send(sockfd, msg_name, msg_name->len, 0);
 	DIE(ret_code < 0, "send");
+	free(msg_name);
 
 	/* in read_fds se vor retine toti file descriptori pentru care este de
 	asteptat sa primeasca informatii */
@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
 	FD_SET(sockfd, &read_fds);
 	
 	format *msg_to_send = (format *) malloc(sizeof(format));
+	DIE(msg_to_send == NULL, "malloc");
 
 	while (1) {
 		tmp_fds = read_fds;
@@ -142,9 +143,9 @@ int main(int argc, char *argv[])
 			char *sub_unsub = strtok(msg_to_send->content, " \n");
 			char *topic = strtok(NULL, " \n");
 			if (strncmp("subscribe", sub_unsub, 9) == 0) {
-				printf("subscribed %s\n", topic);
+				std::cout << "subscribed " << topic << std::endl;
 			} else {
-				printf("unsubscribed %s\n", topic);
+				std::cout << "unsubscribed "<< topic << std::endl;
 			}
 		} else if (FD_ISSET(sockfd, &tmp_fds)) {
 			// se parseaza mesajele primite de la server
@@ -152,7 +153,7 @@ int main(int argc, char *argv[])
 			ret_code = get_parsed_messages(sockfd, msgs);
 
 			if (ret_code == 0) {
-				std::cout << "Serverul a inchis conexiunea\n";
+				// std::cout << "Serverul a inchis conexiunea\n";
 				shutdown(sockfd, SHUT_RDWR);
 				close(sockfd);
 				return 0;
@@ -160,7 +161,7 @@ int main(int argc, char *argv[])
 
 			// se afiseaza pe ecran toate mesajele primite de la server
 			for (std::string& str : msgs) {
-				std::cout << "Am primit de la server: " << str << std::endl;
+				std::cout << str << std::endl;
 			}
 		}
 	}
