@@ -58,7 +58,9 @@ struct format {
 
 /* primeste un socket si returneaza prin parametrul msg toate mesajele primite
 pe acel socket la un anumit moment de timp (desparte mesajele unite de TCP si
-uneste mesajele despartite de TCP) */
+uneste mesajele despartite de TCP), returneaza -1 daca s-a trimis un mesaj de
+inchidere a conexiunii pe socket-ul primit, altfel returneaza dimensiunea
+vectorului msg */
 int get_parsed_messages(int sockfd, std::vector<std::string>& msgs);
 
 #endif // __HELPERS_H__

@@ -59,6 +59,13 @@ int main(int argc, char *argv[])
 	si se leaga la portul stabilit anterior */
 	int sockfd_tcp_listen = socket(AF_INET, SOCK_STREAM, 0);
 	DIE(sockfd_tcp_listen < 0, "socket");
+
+	int reuse = 1;
+	ret_code = setsockopt(sockfd_tcp_listen, SOL_SOCKET, SO_REUSEADDR,
+														&reuse, sizeof(int));
+	DIE(ret_code < 0, "setsockopt");
+	
+
 	ret_code = bind(sockfd_tcp_listen, (struct sockaddr *) &serv_addr,
 													sizeof(struct sockaddr));
 	DIE(ret_code < 0, "bind");
@@ -160,7 +167,7 @@ int main(int argc, char *argv[])
 					int id = sockfd2cli[fd];
 					Client& cli = clis[id];
 
-					if (ret_code == 0) {
+					if (ret_code == -1) {
 						// conexiunea s-a inchis
 						std::cout << "Client " << cli.name
 											   << " disconected." << std::endl;

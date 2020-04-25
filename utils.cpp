@@ -6,7 +6,7 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
     /* variabila utilaza pentru a marca cazul in care caracterul '\0' (finalul
     unui mesaj) nu a fost citit in buffer-ul anterior
     si trebuie citit in buffer-ul curent */
-    static int trail_0;
+    static bool trail_0 = false;
 
     char buffer[BUFF_SIZE + 5];
     memset(buffer, 0, sizeof(buffer));
@@ -19,7 +19,7 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
 
     if (ret_code == 0) {
         // clientul s-a deconectat
-        return 0;
+        return -1;
     }
 
     int msg_offset = 0;
@@ -31,10 +31,13 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
     while (msg_offset < recv_info_size) {
         /* trateaza cazul in care caracterul '\0' (finalul unui mesaj) nu a fost
         citit in buffer-ul anterior si trebuie citit in buffer-ul curent */
-        if (buffer[0] == '\0' && msg_offset == 0) {
+        if (trail_0) {
             memcpy(buffer, buffer + 1, sizeof(buffer) - 1);
             --recv_info_size;
+            trail_0 = false;
 
+            /* trateaza cazul in care '\0' este singurul
+            caracter citit in buffer-ul curent */
             if (recv_info_size == 0) {
                 break;
             }
@@ -80,7 +83,6 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
         citiri de pe socket pana cand mesajul este integru */
         while (read_len != len - 3) {
             // se citeste un nou buffer
-            std::cout << std::endl << "%%%%%%%%555  " << read_len << " " << len << " " << msg->len << std::endl;
             memset(buffer, 0, sizeof(buffer));
 
             ret_code = recv(sockfd, buffer, BUFF_SIZE - 1, 0);
@@ -89,7 +91,6 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
 
             str_msg = str_msg + std::string(buffer);
             read_len += strlen(buffer);
-    std::cout << std::endl << "%%%%%%%%%%%%%%777777  " << read_len << " " << len << std::endl;
 
             // se seteaza offset-ul in noul buffer citit
             msg_offset = strlen(buffer) + 1;
@@ -98,7 +99,12 @@ int get_parsed_messages(int sockfd, std::vector<std::string>& msgs) {
         msgs.push_back(str_msg);
     }
 
-    //if ()
+    // update trail_0
+    if (msg_offset > recv_info_size) {
+        trail_0 = true;
+    } else {
+        trail_0 = false;
+    }
 
     return msgs.size();
 }

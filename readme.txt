@@ -28,7 +28,7 @@ din fisierul utils.h. Functia primeste socket-ul de pe care se
 poate realizeaza o citire si returneaza prin intermediul vectorului
 msg toate mesajele care au fost citite de pe acel socket (vectorul
 contine pentru fiecare mesaj citit de pe socket numai informatia utila
-(campul content din structura format)). Functia returneaza valoarea 0
+(campul content din structura format)). Functia returneaza valoarea -1
 daca clientul s-a deconectat, altfel returneaza lungimea vectorului
 msg.
 

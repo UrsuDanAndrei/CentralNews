@@ -231,7 +231,6 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 	msg->content[strlen(msg->content)] = '\0';
 
 	// in buffer primul string este reprezentat de topicul discutiei
-	std::cout << msg->content << " " << msg->len << std::endl;
 	buffer[MAX_TOPIC_LEN] = '\0';
 	send_to_all_subscribers(buffer, msg, clis, topic_subs);
 }

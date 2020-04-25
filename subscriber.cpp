@@ -67,7 +67,8 @@ int main(int argc, char *argv[])
 
 	// disable NEAGLE Algorithm on this socket
 	uint32_t disable = 1;
-	ret_code = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &disable, sizeof(uint32_t));
+	ret_code = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *) &disable,
+															sizeof(uint32_t));
 	DIE(ret_code < 0, "setsockopt");
 
 	// se initializeaza adresa si portul server-ului la care se va conecta
@@ -153,8 +154,9 @@ int main(int argc, char *argv[])
 			std::vector<std::string> msgs;
 			ret_code = get_parsed_messages(sockfd, msgs);
 
-			if (ret_code == 0) {
-				// std::cout << "Serverul a inchis conexiunea\n";
+			// daca s-a primit -1, inseamna ca server-ul a inchis conexiunea
+			if (ret_code == -1) {
+				// std::cout << "Server-ul a inchis conexiunea\n";
 				shutdown(sockfd, SHUT_RDWR);
 				close(sockfd);
 				return 0;

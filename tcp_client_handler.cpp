@@ -34,7 +34,7 @@ void add_tcp_client(int& fdmax, int sockfd_tcp_listen, fd_set &read_fds,
 
 	/* daca clientul nu isi trimite macar numele atunci socket-ul a aparut o
 	eroare si se inchide socket-ul */
-	if (ret_code == 0) {
+	if (ret_code == -1) {
 		// std::cout << "Clientul nu a specificat numele de autentificare\n";
 		FD_CLR(new_sockfd, &read_fds);
 
