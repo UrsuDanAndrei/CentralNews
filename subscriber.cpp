@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
 	
 	format *msg_to_send = (format *) malloc(sizeof(format));
 	DIE(msg_to_send == NULL, "malloc");
+	memset(msg_to_send, 0, sizeof(format));
 
 	while (1) {
 		tmp_fds = read_fds;

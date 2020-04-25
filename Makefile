@@ -41,7 +41,7 @@ run_server:
 
 # Ruleaza clientul 	
 run_subscriber:
-	./subscriber ${IP_SERVER} ${PORT_SERVER} ${NUME}
+	./subscriber ${NUME} ${IP_SERVER} ${PORT_SERVER}
 
 clean:
 	rm -f server subscriber *.o

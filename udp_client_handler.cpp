@@ -50,13 +50,14 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 	int topic_offset = s_line_s_offset + 3;
 	memcpy(msg->content + topic_offset, buffer, strlen(buffer));
 
-	buffer[MAX_TOPIC_LEN] = saved_char;
 	
 	// IP:PORT - topic - 
 	int s_line_s_offset2 = topic_offset + strlen(buffer);
 	msg->content[s_line_s_offset2] = ' ';
 	msg->content[s_line_s_offset2 + 1] = '-';
 	msg->content[s_line_s_offset2 + 2] = ' ';
+
+	buffer[MAX_TOPIC_LEN] = saved_char;
 
 	// IP:PORT - topic - tip_date - valoare mesaj
 	int type_offset =  s_line_s_offset2 + 3;
@@ -164,7 +165,7 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 			uint32_t no;
 			memcpy(&no, buffer + FLOAT_OFFSET, sizeof(uint32_t));
 			no = ntohl(no);
-			int no_len = sprintf(msg->content + no_offset, "%d", no);
+			int no_len = sprintf((msg->content + no_offset), "%d", no);
 
 			uint8_t power10;
 			memcpy(&power10, buffer + POWER10_OFFSET, sizeof(uint8_t));
@@ -196,6 +197,9 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 
 				int final_len = no_offset + no_len + 1;
 				msg->content[final_len] = '\0';
+			} else {
+				int final_len = no_offset + no_len;
+				msg->content[final_len] = '\0';
 			}
 
 			break;
@@ -224,8 +228,10 @@ void process_received_info(int sockfd, std::vector<Client> &clis,
 
 	// 2 este pentru cei 2 bytes din primul int, 1 este pentru '\0' din coada
 	msg->len = 2 + strlen(msg->content) + 1;
+	msg->content[strlen(msg->content)] = '\0';
 
 	// in buffer primul string este reprezentat de topicul discutiei
+	std::cout << msg->content << " " << msg->len << std::endl;
 	buffer[MAX_TOPIC_LEN] = '\0';
 	send_to_all_subscribers(buffer, msg, clis, topic_subs);
 }
